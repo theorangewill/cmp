@@ -15,19 +15,28 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
 
     (*tamanhoLista) = 0;
 
+    //Leitura de um traco por vez, ate o final do arquivo
     while(1){
+        //Aloca memoria para um traco
         traco = (Traco*) malloc(sizeof(Traco));
+
+        //Leitura do cabecalho do traco
         if(fread(traco, SEISMIC_UNIX_HEADER, 1, arquivo) < 1) break;
 
+        //Aloca memoria para os dados sismicos
+        //traco->ns numero de amostras
         traco->dados = malloc(sizeof(float) * traco->ns);
 
-        //PrintTracoCabecalho(traco);
+        //PrintTracoCabecalhoSU(traco);
 
+        //Leitura das amostras
         if(fread(traco->dados, sizeof(float), traco->ns, arquivo) < 1) break;
 
-        //PrintTraco(traco);
+        //PrintTracoSU(traco);
 
         flag = 0;
+        //Insere o traco lido na lista que possui o mesmo cdp
+        //criando uma lista de tracos com mesmo cdp
         for(i=0; i<*tamanhoLista; i++){
             if((*listaTracos)[i]->cdp == traco->cdp){
                 if((*listaTracos)[i]->capacidade <= (*listaTracos)[i]->tamanho){
@@ -40,6 +49,7 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
                 break;
             }
         }
+        //Se nao existe uma lista com cdp do traco, eh criada uma nova lista
         if(!flag){
             if(*tamanhoLista == 0){
                 *listaTracos = (ListaTracos**) malloc(sizeof(ListaTracos*));
@@ -59,12 +69,35 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
 
     fclose(arquivo);
 
-    PrintListaTracos(*listaTracos,*tamanhoLista);
+    //PrintListaTracosSU(*listaTracos,*tamanhoLista);
     return 1;
 }
 
+float ScalcoSU(Traco *traco)
+{
+    //Se positivo, envia o dado
+    if (traco->scalco > 0)
+		return traco->scalco;
+    //Se negativo, envia o inverso
+	else if (traco->scalco < 0)
+		return 1/traco->scalco;
+    else return 1;
+}
 
-void PrintListaTracos(ListaTracos **lista, int tamanho)
+void OffsetSU(Traco *traco, float *hx, float *hy)
+{
+	float scalco;
+    //Calcula o scalco, valor a ser multiplicado pelas dimensoes para torná-los numeros reais
+    scalco = ScalcoSU(traco);
+    //Eixo x
+	*hx = scalco*(traco->gx-traco->sx);
+    //Eixo y
+	*hy = scalco*(traco->gy-traco->sy);
+}
+
+
+
+void PrintListaTracosSU(ListaTracos **lista, int tamanho)
 {
   int i, j;
   for(i=0; i<tamanho; i++){
@@ -78,7 +111,7 @@ void PrintListaTracos(ListaTracos **lista, int tamanho)
   printf("QUANTIDADE DE LISTAS: %d\n", tamanho);
 }
 
-void PrintTracoCabecalho(Traco *traco)
+void PrintTracoCabecalhoSU(Traco *traco)
 {
     printf("tracl=%d\t\t\t tracr=%d\t\t fldr=%d\t\t\t tracf=%d\t\t ep=%d\t\t\t cdp=%d\t\t\t cdpt=%d\n", traco->tracl, traco->tracr, traco->fldr, traco->tracf, traco->ep, traco->cdp, traco->cdpt);
     printf("trid=%d\t\t\t nvs=%d\t\t\t nhs=%d\t\t\t duse=%d\n", traco->trid, traco->nvs, traco->nhs, traco->duse);
@@ -101,9 +134,25 @@ void PrintTracoCabecalho(Traco *traco)
     printf("unass=%d %d %d %d %d %d %d\n", traco->unass[0], traco->unass[1], traco->unass[2], traco->unass[3], traco->unass[4], traco->unass[5], traco->unass[6]);
 }
 
-void PrintTraco(Traco *traco)
+void PrintTracoSU(Traco *traco)
 {
     for(int i = 0; i<traco->ns; i++)
         printf("%.12f\t", traco->dados[i]);
     printf("\n");
+}
+
+void LiberarMemoriaSU(ListaTracos ***lista, int *tamanho)
+{
+    int i, j;
+    for(i=0; i<*tamanho; i++){
+        for(j=0; j<(*lista)[i]->tamanho; j++){
+            free((*lista)[i]->tracos[j]->dados);
+            free((*lista)[i]->tracos[j]);
+        }
+        free((*lista)[i]->tracos);
+        free((*lista)[i]);
+    }
+    //free(**lista);
+    free(*lista);
+    *tamanho = 0;
 }

@@ -114,17 +114,32 @@ typedef struct {
 int LeitorArquivoSU(char* arquivo, ListaTracos ***listaTracos, int *tamanhoLista);
 
 /*
+ * Retorna o scalco multiplicado (se positivo) ou dividindo (se negativo).
+ */
+float ScalcoSU(Traco *traco);
+
+/*
+ * Calcula a metade do offset.
+ */
+void OffsetSU(Traco *traco, float *hx, float *hy);
+
+/*
  * Imprime o cabecalho do traco.
  */
-void PrintTracoCabecalho(Traco *traco);
+void PrintTracoCabecalhoSU(Traco *traco);
 
 
 /*
  * Imprime o traco.
  */
-void PrintTraco(Traco *traco);
+void PrintTracoSU(Traco *traco);
 
 /*
   * Imprime lista de tracos.
   */
-void PrintListaTracos(ListaTracos **lista, int tamanho);
+void PrintListaTracosSU(ListaTracos **lista, int tamanho);
+
+/*
+  * Libera memória de uma lista de tracos.
+  */
+void LiberarMemoriaSU(ListaTracos ***lista, int *tamanho);

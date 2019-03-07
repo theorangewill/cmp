@@ -6,79 +6,81 @@
 
 #include "seismicunix.h"
 
-int LeitorArquivoSU(char *argumento, ListaTracos **listaTracos, int *tamanhoLista)
+int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLista)
 {
     int i;
     int flag;
     Traco *traco;
     FILE *arquivo = fopen(argumento, "r");
 
+    (*tamanhoLista) = 0;
+
     while(1){
         traco = (Traco*) malloc(sizeof(Traco));
-        printf("CRIOU O TRACO %p\n", traco);
-        if(fread(traco, SEISMIC_UNIX_HEADER, 1, arquivo) < 1) ;//break;
+        if(fread(traco, SEISMIC_UNIX_HEADER, 1, arquivo) < 1) break;
 
         traco->dados = malloc(sizeof(float) * traco->ns);
 
         //PrintTracoCabecalho(traco);
 
-        if(fread(traco->dados, traco->ns, 1, arquivo) < 1) ;//break;
+        if(fread(traco->dados, sizeof(float), traco->ns, arquivo) < 1) break;
 
         //PrintTraco(traco);
 
         flag = 0;
         for(i=0; i<*tamanhoLista; i++){
-            if(listaTracos[i]->cdp = traco->cdp){
-                printf("ENCONTROU CDP IGUAL (%d) NA LISTA %d [%p]\n", traco->cdp, i, listaTracos[i]);
-                if(listaTracos[i]->capacidade > listaTracos[i]->tamanho){
-                    printf("\tADICIONADO!\n");
-                    listaTracos[i]->tracos[listaTracos[i]->tamanho] = traco;
-                    listaTracos[i]->tamanho++;
+            if((*listaTracos)[i]->cdp == traco->cdp){
+                if((*listaTracos)[i]->capacidade <= (*listaTracos)[i]->tamanho){
+                    (*listaTracos)[i]->tracos = realloc((*listaTracos)[i]->tracos,((*listaTracos)[i]->tamanho+10)*sizeof(Traco*));
+                    (*listaTracos)[i]->capacidade = (*listaTracos)[i]->tamanho+10;
                 }
-                else{
-                    printf("\tCAPACIDADE ATINGIDA!\n");
-                    listaTracos[i]->tracos = realloc(listaTracos[i]->tracos,listaTracos[i]->tamanho+10*sizeof(Traco*));
-                    listaTracos[i]->capacidade = listaTracos[i]->tamanho+10;
-                    listaTracos[i]->tracos[listaTracos[i]->tamanho] = traco;
-                    listaTracos[i]->tamanho++;
-                }
+                (*listaTracos)[i]->tracos[(*listaTracos)[i]->tamanho] = traco;
+                (*listaTracos)[i]->tamanho++;
                 flag = 1;
                 break;
             }
         }
         if(!flag){
-            printf("NAO ENCONTROU CDP IGUAL (%d)\n", traco->cdp);
             if(*tamanhoLista == 0){
-                printf("\tINICIOU A LISTA DE TRACOS!\n");
-                listaTracos = (ListaTracos**) malloc(sizeof(ListaTracos*)*2);
-                //listaTracos[0]->cdp = traco->cdp;
-                //listaTracos[0]->capacidade = 10;
-                //listaTracos[0]->tamanho = 1;
-                //listaTracos[0]->tracos = malloc(sizeof(Traco*)*10);
-                //listaTracos[0]->tracos[0] = traco;
+                *listaTracos = (ListaTracos**) malloc(sizeof(ListaTracos*));
             }
             else{
-                printf("\tADICIONOU UMA NOVA LISTA\n");
-                listaTracos = (ListaTracos**) realloc(listaTracos,(*tamanhoLista)+sizeof(ListaTracos*));
-                listaTracos[*tamanhoLista]->cdp = traco->cdp;
-                listaTracos[*tamanhoLista]->capacidade = 10;
-                listaTracos[*tamanhoLista]->tamanho = 1;
-                listaTracos[*tamanhoLista]->tracos = malloc(sizeof(Traco*)*10);
-                listaTracos[*tamanhoLista]->tracos[0] = traco;
-                (*tamanhoLista)++;
+                *listaTracos = (ListaTracos**) realloc(*listaTracos,((*tamanhoLista)+1)*sizeof(ListaTracos*));
             }
+            (*listaTracos)[*tamanhoLista] = (ListaTracos*) malloc(sizeof(ListaTracos));
+            (*listaTracos)[*tamanhoLista]->cdp = traco->cdp;
+            (*listaTracos)[*tamanhoLista]->capacidade = 10;
+            (*listaTracos)[*tamanhoLista]->tamanho = 1;
+            (*listaTracos)[*tamanhoLista]->tracos = malloc(sizeof(Traco*)*10);
+            (*listaTracos)[*tamanhoLista]->tracos[0] = traco;
+            (*tamanhoLista)++;
         }
     }
 
     fclose(arquivo);
-    printf("---------------\n");
+
+    PrintListaTracos(*listaTracos,*tamanhoLista);
     return 1;
 }
 
 
+void PrintListaTracos(ListaTracos **lista, int tamanho)
+{
+  int i, j;
+  for(i=0; i<tamanho; i++){
+    printf("CDP: %d\t\t - %d (%d)\n", lista[i]->cdp, lista[i]->tamanho, lista[i]->capacidade);
+    for(j=0; j<lista[i]->tamanho; j++){
+        printf("%p ", lista[i]->tracos[j]);
+        //printf("%p (%d) ", lista[i]->tracos[j], lista[i]->tracos[j]->offset);
+    }
+    printf("\n");
+  }
+  printf("QUANTIDADE DE LISTAS: %d\n", tamanho);
+}
+
 void PrintTracoCabecalho(Traco *traco)
 {
-    printf("tracl=%d\t\t\t tracr=%d\t\t fldr=%d\t\t\t ep=%d\t\t\t cdp=%d\t\t\t cdpt=%d\n", traco->tracl, traco->tracr, traco->fldr, traco->ep, traco->cdp, traco->cdpt);
+    printf("tracl=%d\t\t\t tracr=%d\t\t fldr=%d\t\t\t tracf=%d\t\t ep=%d\t\t\t cdp=%d\t\t\t cdpt=%d\n", traco->tracl, traco->tracr, traco->fldr, traco->tracf, traco->ep, traco->cdp, traco->cdpt);
     printf("trid=%d\t\t\t nvs=%d\t\t\t nhs=%d\t\t\t duse=%d\n", traco->trid, traco->nvs, traco->nhs, traco->duse);
     printf("offset=%d\t\t gelev=%d\t\t selev=%d\t\t sdepth=%d\t\t gdel=%d\t\t sdel=%d\n", traco->offset, traco->gelev, traco->selev, traco->sdepth, traco->gdel, traco->sdel);
     printf("sqdep=%d\t\t\t gwdep=%d\t\t scalel=%d\t\t scalco=%d\n", traco->sqdep, traco->gwdep, traco->scalel, traco->scalco);
@@ -102,6 +104,6 @@ void PrintTracoCabecalho(Traco *traco)
 void PrintTraco(Traco *traco)
 {
     for(int i = 0; i<traco->ns; i++)
-        printf("%f\t", traco->dados[i]);
+        printf("%.12f\t", traco->dados[i]);
     printf("\n");
 }

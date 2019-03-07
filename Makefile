@@ -11,7 +11,7 @@ csources = $(program).c  $(class).c
 cobjects = $(program).o $(class).o
 
 $(program): $(cobjects)
-	$(compile) -o $(program) $(cobjects) $(cflags)
+	$(compile) -o $(program) $(cobjects) $(cflags) -O0
 
 $(cobjects): $(csources)
 	$(compile) $^ -c

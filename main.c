@@ -5,9 +5,9 @@
  */
 
 #include "seismicunix.h"
- 
 
-void liberarMemoria(ListaTracos **lista, int *tamanho);
+
+void liberarMemoria(ListaTracos ***lista, int *tamanho);
 
 
 int main (int argc, char **argv)
@@ -18,29 +18,32 @@ int main (int argc, char **argv)
         exit(1);
     }
 
-    ListaTracos **listaTracos;
+    ListaTracos **listaTracos = NULL;
     int tamanhoLista = 0;
 
-    if(!LeitorArquivoSU(argv[1], listaTracos, &tamanhoLista)){
+    if(!LeitorArquivoSU(argv[1], &listaTracos, &tamanhoLista)){
         printf("ERRO NA LEITURA\n");
         exit(1);
     }
 
-    //liberarMemoria(listaTracos, &tamanhoLista);
+    liberarMemoria(&listaTracos, &tamanhoLista);
 
     return 1;
 }
 
-void liberarMemoria(ListaTracos **lista, int *tamanho)
+
+void liberarMemoria(ListaTracos ***lista, int *tamanho)
 {
     int i, j;
     for(i=0; i<*tamanho; i++){
-        for(j=0; j<lista[i]->tamanho; j++){
-            free(lista[i]->tracos[j]);
+        for(j=0; j<(*lista)[i]->tamanho; j++){
+            free((*lista)[i]->tracos[j]->dados);
+            free((*lista)[i]->tracos[j]);
         }
-        
-        free(lista[i]->tracos);
+        free((*lista)[i]->tracos);
+        free((*lista)[i]);
     }
-    free(lista);
-    tamanho = 0;
+    //free(**lista);
+    free(*lista);
+    *tamanho = 0;
 }

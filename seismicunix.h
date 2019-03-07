@@ -18,6 +18,7 @@ typedef struct {
   int tracl; /**< . */
   int tracr; /**< . */
   int fldr; /**< . */
+  int tracf; /**< . */
   int ep; /**< . */
   int cdp; /**< Common-depth point. */
   int cdpt; /**< . */
@@ -34,7 +35,7 @@ typedef struct {
   int sqdep; /**< . */
   int gwdep; /**< . */
   short int scalel; /**< . */
-  short int scalco; /**< . */
+  short int scalco; /**< Escalar utilizado para converter sx, sy, gx, gy para numeros reais (Se positivo multiplica-se, se negativo divide-se). */
   int sx; /**< Coordenada X da fonte. */
   int sy; /**< Coordenada Y da fonte. */
   int gx; /**< Coordenada X dos receptores. */
@@ -110,7 +111,7 @@ typedef struct {
 /*
  * Le o arquivo do dado sismico SU.
  */
-int LeitorArquivoSU(char* arquivo, ListaTracos **listaTracos, int *tamanhoLista);
+int LeitorArquivoSU(char* arquivo, ListaTracos ***listaTracos, int *tamanhoLista);
 
 /*
  * Imprime o cabecalho do traco.
@@ -122,3 +123,8 @@ void PrintTracoCabecalho(Traco *traco);
  * Imprime o traco.
  */
 void PrintTraco(Traco *traco);
+
+/*
+  * Imprime lista de tracos.
+  */
+void PrintListaTracos(ListaTracos **lista, int tamanho);

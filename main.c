@@ -29,6 +29,9 @@ int main (int argc, char **argv)
     int tamanhoLista = 0;
     float velini, velfin, incr, wind;
     int tracos;
+    char saida[101], saidaEmpilhado[104], saidaSemblance[104], saidaC[104];
+    FILE *arquivoEmpilhado, *arquivoSemblance, *arquivoC;
+    Traco tracoSemblance, tracoC, tracoEmpilhado;
 
     if(argc < 6){
         printf("ERRO: ./main <dado sismico> VELINI VELFIN INCR WIND\n");
@@ -36,7 +39,7 @@ int main (int argc, char **argv)
         printf("\tVELINI:  velocidade inicial\n");
         printf("\tVELFIN:  velocidade final\n");
         printf("\tINCR:    increasement na velocidade\n");
-        printf("\tWIND:    janela do semblance\n");
+        printf("\tWIND:    janela do semblance (em amostras)\n");
         exit(1);
     }
 
@@ -51,6 +54,21 @@ int main (int argc, char **argv)
     velfin = atof(argv[3]);
     incr = atof(argv[4]);
     wind = atof(argv[5]);
+
+    //Criacao dos arquivos de saida
+    argv[1][strlen(argv[1])-3] = '\0';
+    strcpy(saida,argv[1]);
+    strcpy(saidaEmpilhado,saida);
+    strcat(saidaEmpilhado,"-empilhado.su");
+    arquivoEmpilhado = fopen(saidaEmpilhado,"w");
+    strcpy(saidaSemblance,saida);
+    strcat(saidaSemblance,"-semblance.su");
+    arquivoSemblance = fopen(saidaSemblance,"w");
+    strcpy(saidaC,saida);
+    strcat(saidaC,"-C.su");
+    arquivoC = fopen(saidaC,"w");
+
+    
 
     //Rodar o CMP para cada conjunto de tracos de mesmo cdp
     for(tracos=0; tracos<tamanhoLista; tracos++){
@@ -89,20 +107,23 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg)
     int traco;
     float t, h;
     int amostra, k;
-    int w = (int) ceil(wind/seg);
+    //int w = (int) ceil(wind/seg);
+    int w = (int) wind;
     int janela = 2*w+1;
     int N;
     float numerador[janela], denominador[janela];
     float num, dem;
     float valor; 
     int j;
+    int erro;
 
     //Numerador e denominador da funcao semblance zerados
-    memset(&numerador[0],0,sizeof(numerador));
-    memset(&denominador[0],0,sizeof(denominador));
+    memset(&numerador,0,sizeof(numerador));
+    memset(&denominador,0,sizeof(denominador));
 
     //Para cada traco do conjunto
     N = 0;
+    erro = 0;
     for(traco=0; traco<lista->tamanho; traco++){
         //Calcular metade do offset do traco
         h = HalfOffset(lista->tracos[traco]);
@@ -111,6 +132,9 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg)
         //Calcular a amostra equivalente ao tempo calculado
         amostra = (int) t/seg;
         //Se a janela da amostra cobre os dados sismicos
+        //printf("h=%f t0=%f C=%f      ", h, t0, C);
+        //printf("%d - %d>= 0 && %d +%d < %d    ", amostra, w, amostra, w, lista->tracos[traco]->ns);
+        
         if(amostra - w >= 0 && amostra + w < lista->tracos[traco]->ns){
             //Para cada amostra dentro da janela
             for(j=0; j<janela; j++){
@@ -121,7 +145,10 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg)
             }
             N++;
         }
-        else return 0;
+        else{
+            erro++;
+        }
+        if(erro == 2) return -1;
     }
 
     num = 0; dem = 0;
@@ -137,7 +164,7 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg)
 void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind)
 {
     int amostra, amostras;
-    float vel;
+    float vel, bestVel;
     float seg, t0; 
     float h;
     float C, bestC;
@@ -153,7 +180,8 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind)
         //Calcula o segundo inicial
         t0 = amostra*seg;
 
-        bestC = velini;
+        bestVel = velini;
+        bestC = 4/(velini);
         bestS = 0;
         //Para cada velocidade
         for(vel=velini; vel<=velfin; vel+=incr){
@@ -161,12 +189,15 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind)
             C = 4/(vel*vel);
             //Calcular semblance
             s = Semblance(lista,C,t0,wind,seg);
-            if(s > bestS){
+            if(s == -1){
+                break;
+            }
+            else if(s > bestS){  
                 bestS = s;
                 bestC = C;
+                bestVel = vel;
             }
         }
-        printf("%d %f %f\n", amostra, bestS, bestC);
+        printf("%d S=%.20f C=%.20f Vel=%.20f\n", amostra, bestS, bestC, bestVel);
     }
-    getchar();
 }

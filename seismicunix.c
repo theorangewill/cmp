@@ -61,7 +61,7 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
             (*listaTracos)[*tamanhoLista]->cdp = traco->cdp;
             (*listaTracos)[*tamanhoLista]->capacidade = 10;
             (*listaTracos)[*tamanhoLista]->tamanho = 1;
-            (*listaTracos)[*tamanhoLista]->tracos = malloc(sizeof(Traco*)*10);
+            (*listaTracos)[*tamanhoLista]->tracos = (Traco**) malloc(sizeof(Traco*)*10);
             (*listaTracos)[*tamanhoLista]->tracos[0] = traco;
             (*tamanhoLista)++;
         }
@@ -94,7 +94,6 @@ void OffsetSU(Traco *traco, float *hx, float *hy)
     //Eixo y
 	*hy = scalco*(traco->gy-traco->sy);
 }
-
 
 
 void PrintListaTracosSU(ListaTracos **lista, int tamanho)

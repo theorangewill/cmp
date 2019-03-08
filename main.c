@@ -16,7 +16,10 @@ void LiberarMemoria(ListaTracos ***lista, int *tamanho);
 /*
  * Algoritmo CMP.
  */
-void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind);
+void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC);
+
+
+void SetCabecalhoCMP(Traco *traco);
 
 /*
  * Calcula a metade do offset.
@@ -67,17 +70,52 @@ int main (int argc, char **argv)
     strcpy(saidaC,saida);
     strcat(saidaC,"-C.su");
     arquivoC = fopen(saidaC,"w");
-
     
-
     //Rodar o CMP para cada conjunto de tracos de mesmo cdp
     for(tracos=0; tracos<tamanhoLista; tracos++){
-        CMP(listaTracos[tracos],velini,velfin,incr,wind);
+        //Copiar cabecalho do conjunto dos tracos para os tracos de saida
+        memcpy(&tracoEmpilhado,listaTracos[tracos]->tracos[0], SEISMIC_UNIX_HEADER);
+        //E necessario setar os conteudos de offset e coordenadas de fonte e receptores
+        SetCabecalhoCMP(&tracoEmpilhado);
+        memcpy(&tracoSemblance,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
+        memcpy(&tracoC,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
+
+        //Execucao do CMP
+        CMP(listaTracos[tracos],velini,velfin,incr,wind,&tracoEmpilhado,&tracoSemblance,&tracoC);
+
+        //Copiar os tracos resultantes nos arquivos de saida
+        fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
+        fwrite(&(tracoEmpilhado.dados[0]),sizeof(float),tracoEmpilhado.ns,arquivoEmpilhado);
+        fwrite(&tracoSemblance,SEISMIC_UNIX_HEADER,1,arquivoSemblance);
+        fwrite(&(tracoSemblance.dados[0]),sizeof(float),tracoSemblance.ns,arquivoSemblance);
+        fwrite(&tracoC,SEISMIC_UNIX_HEADER,1,arquivoC);
+        fwrite(&(tracoC.dados[0]),sizeof(float),tracoC.ns,arquivoC);
+
+        //Liberar memoria alocada nos dados do traco resultante
+        free(tracoEmpilhado.dados);
+        free(tracoSemblance.dados);
+        free(tracoC.dados);
     }
+
+    fclose(arquivoEmpilhado);
+    fclose(arquivoSemblance);
+    fclose(arquivoC);
 
     LiberarMemoria(&listaTracos, &tamanhoLista);
 
     return 1;
+}
+
+void SetCabecalhoCMP(Traco *traco)
+{
+    int mx, my;
+    mx = (traco->sx + traco->gx) / 2;
+    my = (traco->sy + traco->gy) / 2;
+    traco->offset = 0;
+    traco->sx = mx;
+    traco->sy = my;
+    traco->gx = mx;
+    traco->gy = my;
 }
 
 void LiberarMemoria(ListaTracos ***lista, int *tamanho)
@@ -102,7 +140,7 @@ void InterpolacaoLinear(float *x, float x0, float x1, float y, float y0, float y
     *x = x0 + (x1- x0) * (y - y0) / (y1 - y0);
 }
 
-float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg)
+float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha)
 {
     int traco;
     float t, h;
@@ -132,16 +170,15 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg)
         //Calcular a amostra equivalente ao tempo calculado
         amostra = (int) t/seg;
         //Se a janela da amostra cobre os dados sismicos
-        //printf("h=%f t0=%f C=%f      ", h, t0, C);
-        //printf("%d - %d>= 0 && %d +%d < %d    ", amostra, w, amostra, w, lista->tracos[traco]->ns);
-        
         if(amostra - w >= 0 && amostra + w < lista->tracos[traco]->ns){
             //Para cada amostra dentro da janela
             for(j=0; j<janela; j++){
                 k = amostra - w + j;
+                //Interpolacao linear entre as duas amostras
                 InterpolacaoLinear(&valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
                 numerador[j] += valor;
                 denominador[j] += valor*valor;
+                *pilha += valor;
             }
             N++;
         }
@@ -157,11 +194,13 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg)
         dem += denominador[j];
     }
 
+    *pilha = (*pilha)/N/janela;
+
     return num / N / dem;
 
 }
 
-void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind)
+void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC)
 {
     int amostra, amostras;
     float vel, bestVel;
@@ -169,17 +208,24 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind)
     float h;
     float C, bestC;
     float s, bestS;
+    float pilha, pilhaTemp;
 
     //Tempo entre amostras, convertido para segundos
     seg = ((float) lista->tracos[0]->dt)/1000000;
     //Numero de amostras
     amostras = lista->tracos[0]->ns;
+    //Alocar memoria para os dados dos tracos resultantes
+    tracoEmpilhado->dados = malloc(sizeof(float)*amostras);
+    tracoSemblance->dados = malloc(sizeof(float)*amostras);
+    tracoC->dados = malloc(sizeof(float)*amostras);
 
     //Para cada amostra do primeiro traco
     for(amostra=0; amostra<amostras; amostra++){
         //Calcula o segundo inicial
         t0 = amostra*seg;
 
+        //Inicializar variaveis antes da busca
+        pilha = lista->tracos[0]->dados[amostra];
         bestVel = velini;
         bestC = 4/(velini);
         bestS = 0;
@@ -188,7 +234,10 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind)
             //Calcular o termo do calculo da hiperbole
             C = 4/(vel*vel);
             //Calcular semblance
-            s = Semblance(lista,C,t0,wind,seg);
+            pilhaTemp = 0;
+            s = Semblance(lista,C,t0,wind,seg,&pilhaTemp);
+            if(s<0 && s!=-1) printf("S NEGATIVO\n");
+            if(s>1) printf("S MAIOR Q UM\n");
             if(s == -1){
                 break;
             }
@@ -196,8 +245,12 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind)
                 bestS = s;
                 bestC = C;
                 bestVel = vel;
+                pilha = pilhaTemp;
             }
         }
-        printf("%d S=%.20f C=%.20f Vel=%.20f\n", amostra, bestS, bestC, bestVel);
+        tracoEmpilhado->dados[amostra] = pilha;
+        tracoSemblance->dados[amostra] = bestS;
+        tracoC->dados[amostra] = bestC;
+        //printf("%d S=%.20f C=%.20f Vel=%.20f Pilha=%.20f\n", amostra, bestS, bestC, bestVel, pilha);
     }
 }

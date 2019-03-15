@@ -98,16 +98,16 @@ void OffsetSU(Traco *traco, float *hx, float *hy)
 
 void PrintListaTracosSU(ListaTracos **lista, int tamanho)
 {
-  int i, j;
-  for(i=0; i<tamanho; i++){
-    printf("CDP: %d\t\t - %d (%d)\n", lista[i]->cdp, lista[i]->tamanho, lista[i]->capacidade);
-    for(j=0; j<lista[i]->tamanho; j++){
-        printf("%p ", lista[i]->tracos[j]);
-        //printf("%p (%d) ", lista[i]->tracos[j], lista[i]->tracos[j]->offset);
+    int i, j;
+    for(i=0; i<tamanho; i++){
+        printf("CDP: %d\t\t - %d (%d)\n", lista[i]->cdp, lista[i]->tamanho, lista[i]->capacidade);
+        for(j=0; j<lista[i]->tamanho; j++){
+            printf("%p ", lista[i]->tracos[j]);
+            //printf("%p (%d) ", lista[i]->tracos[j], lista[i]->tracos[j]->offset);
+        }
+        printf("\n");
     }
-    printf("\n");
-  }
-  printf("QUANTIDADE DE LISTAS: %d\n", tamanho);
+    printf("QUANTIDADE DE LISTAS: %d\n", tamanho);
 }
 
 void PrintTracoCabecalhoSU(Traco *traco)
@@ -135,8 +135,21 @@ void PrintTracoCabecalhoSU(Traco *traco)
 
 void PrintTracoSU(Traco *traco)
 {
-    for(int i = 0; i<traco->ns; i++)
-        printf("%.12f\t", traco->dados[i]);
+    float maior = 0, menor = 0;
+    int idmaior = -1, idmenor = -1;
+    for(int i = 0; i<traco->ns; i++){
+        printf("%d\t%.12f\n", i, traco->dados[i]);
+        if(traco->dados[i] > maior){
+            maior = traco->dados[i];
+            idmaior = i;
+        }
+        if(traco->dados[i] < menor){
+            menor = traco->dados[i];
+            idmenor = i;
+        }
+    }
+    printf("\n");
+    printf("[%d]=%f | [%d]=%f", idmaior, maior, idmenor, menor);
     printf("\n");
 }
 

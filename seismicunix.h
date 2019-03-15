@@ -128,7 +128,6 @@ void OffsetSU(Traco *traco, float *hx, float *hy);
  */
 void PrintTracoCabecalhoSU(Traco *traco);
 
-
 /*
  * Imprime o traco.
  */

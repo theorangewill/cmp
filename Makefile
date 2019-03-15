@@ -1,4 +1,4 @@
-cflags= -g -Wall -std=c99 -pedantic -lm
+cflags= -g -O3 -Wall -std=c99 -pedantic -lm
 
 compile = gcc
 

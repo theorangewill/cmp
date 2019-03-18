@@ -82,11 +82,12 @@ int main (int argc, char **argv)
     strcpy(saidaC,saida);
     strcat(saidaC,"-C.su");
     arquivoC = fopen(saidaC,"w");
-    
+
     //Rodar o CMP para cada conjunto de tracos de mesmo cdp
     for(tracos=0; tracos<tamanhoLista; tracos++){
-
-        printf("\t%d (cdp= %d) de %d\n", tracos, listaTracos[tracos]->cdp, tamanhoLista);
+      //if(listaTracos[tracos]->cdp != 93) continue;
+        //if(listaTracos[tracos]->tamanho <= 4) continue;
+        printf("\t%d[%d] (cdp= %d) de %d\n", tracos, listaTracos[tracos]->tamanho, listaTracos[tracos]->cdp, tamanhoLista);
         //PrintTracoSU(listaTracos[tracos]->tracos[0]);
 
         //Copiar cabecalho do conjunto dos tracos para os tracos de saida
@@ -111,8 +112,8 @@ int main (int argc, char **argv)
         free(tracoEmpilhado.dados);
         free(tracoSemblance.dados);
         free(tracoC.dados);
-        printf("\t%d (cdp= %d) de %d\n", tracos, listaTracos[tracos]->cdp, tamanhoLista);
-    break;
+        //printf("\t%d[%d] (cdp= %d) de %d\n", tracos, listaTracos[tracos]->tamanho, listaTracos[tracos]->cdp, tamanhoLista);
+        //break;
     }
 
     fclose(arquivoEmpilhado);
@@ -130,12 +131,12 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
     float t, h;
     int amostra, k;
     //int w = (int) ceil(wind/seg);
-    int w = (int) wind;
+    int w = (int) (wind/seg);
     int janela = 2*w+1;
     int N;
     float numerador[janela], denominador;
     float num;
-    float valor; 
+    float valor;
     int j;
     int erro;
     //printf("w=%d janela=%d\n", w, janela);
@@ -145,6 +146,7 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
     //Para cada traco do conjunto
     N = 0;
     erro = 0;
+    //printf("\t %f [%d]", C, janela);
     //if(vel>439.0 && vel<440) printf("%f <<<< ", vel);
     for(traco=0; traco<lista->tamanho; traco++){
         //Calcular metade do offset do traco
@@ -160,7 +162,7 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
                 k = amostra - w + j;
                 //Interpolacao linear entre as duas amostras
                 InterpolacaoLinear(&valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
-                //printf("valor: %f [k]:%f [k+1]:%f t/seg-w+j=%f, k:%d, k+1:%d\n", valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
+                ///printf("%d  valor: %.20f [k]:%f [k+1]:%f t/seg-w+j=%f, k:%d, k+1:%d\n", j, valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
                 numerador[j] += valor;
                 denominador += valor*valor;
                 *pilha += valor;
@@ -180,9 +182,9 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
     for(j=0; j<janela; j++){
         num += numerador[j]*numerador[j];
     }
-    //printf("%.10f %.10f %d (%d)  \t\t", num, denominador, N, lista->tamanho);
+    //printf("   %.20f %.20f %d (%d)  \t\t", num, denominador, N, lista->tamanho);
     *pilha = (*pilha)/N/janela;
-
+    //printf("*%f ", num/N/denominador);
     return num / N / denominador;
 
 }
@@ -191,7 +193,7 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind,
 {
     int amostra, amostras;
     float vel, bestVel;
-    float seg, t0; 
+    float seg, t0;
     float h;
     float C, bestC;
     float s, bestS;
@@ -215,38 +217,45 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind,
 
         //Inicializar variaveis antes da busca
         pilha = lista->tracos[0]->dados[amostra];
+        /*
         bestVel = velini;
         bestC = 4/(velini*velini);
+        */
+        bestVel = 2/sqrt(velini);
+        bestC = velini;
         bestS = 0;
+        //printf("%.10f %.10f %.10f\n",velini, velfin, incr);
         //Para cada velocidade
         for(vel=velini; vel<=velfin; vel+=incr){
             //Calcular o termo do calculo da hiperbole
-            C = 4/(vel*vel);
+            //C = 4/(vel*vel);
+            C = vel;
             //Calcular semblance
             pilhaTemp = 0;
             s = Semblance(lista,C,t0,wind,seg,&pilhaTemp,vel);
-
+            //printf("%f\n", s);
             if(s<0 && s!=-1) printf("S NEGATIVO\n");
-            if(s>1) printf("S MAIOR Q UM\n");
+            if(s>1) {printf("S MAIOR Q UM %.20f\n", s); getchar();}
             //if(s == -1) break; //printf("ERRO NO SEMBLANCE");
-            else if(s > bestS){  
-                printf("\n*****%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
+            else if(s > bestS){
+                //printf("\n*****%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
                 bestS = s;
                 bestC = C;
-                bestVel = vel;
+                bestVel = 2/sqrt(C);
+                //bestVel = vel;
                 pilha = pilhaTemp;
             }
             else{
                 ;//printf("\n%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
             }
-            if(vel >=1830 && vel <=1831) 
-                printf("\n>>>%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
+            if(vel >=1830 && vel <=1831)
+                ;//printf("\n>>>%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
         }
-        break;
         tracoEmpilhado->dados[amostra] = pilha;
         tracoSemblance->dados[amostra] = bestS;
         tracoC->dados[amostra] = bestC;
-        printf("\n%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, bestS, bestC, bestVel, pilha);
+        //printf("\n%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, bestS, bestC, bestVel, pilha);
+        //break;
     }
 }
 

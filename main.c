@@ -11,12 +11,12 @@
 /*
  * Algoritmo CMP.
  */
-void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC);
+void CMP(ListaTracos *lista, float Cini, float Cfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC);
 
 /*
  * Implementação da função semblance
  */
-float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha, float vel);
+float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha);
 
 /*
  * Realiza interpolacao linear.
@@ -42,18 +42,18 @@ int main (int argc, char **argv)
 {
     ListaTracos **listaTracos = NULL;
     int tamanhoLista = 0;
-    float velini, velfin, incr, wind;
+    float Cini, Cfin, incr, wind;
     int tracos;
     char saida[101], saidaEmpilhado[104], saidaSemblance[104], saidaC[104];
     FILE *arquivoEmpilhado, *arquivoSemblance, *arquivoC;
     Traco tracoSemblance, tracoC, tracoEmpilhado;
 
     if(argc < 6){
-        printf("ERRO: ./main <dado sismico> VELINI VELFIN INCR WIND\n");
+        printf("ERRO: ./main <dado sismico> C_INI C_FIN INCR WIND\n");
         printf("\tARQUIVO: rodar susort <entrada.su >saida.su cdp offset (ordenar os traços em cdp e offset\n");
-        printf("\tVELINI:  velocidade inicial\n");
-        printf("\tVELFIN:  velocidade final\n");
-        printf("\tINCR:    increasement na velocidade\n");
+        printf("\tC_INI:  constante C inicial\n");
+        printf("\tC_FIN:  constante C final\n");
+        printf("\tINCR:    quantidade de C avaliados\n");
         printf("\tWIND:    janela do semblance (em amostras)\n");
         exit(1);
     }
@@ -65,8 +65,8 @@ int main (int argc, char **argv)
     }
 
     //Leitura dos parametros
-    velini = atof(argv[2]);
-    velfin = atof(argv[3]);
+    Cini = atof(argv[2]);
+    Cfin = atof(argv[3]);
     incr = atof(argv[4]);
     wind = atof(argv[5]);
 
@@ -98,7 +98,7 @@ int main (int argc, char **argv)
         memcpy(&tracoC,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
 
         //Execucao do CMP
-        CMP(listaTracos[tracos],velini,velfin,incr,wind,&tracoEmpilhado,&tracoSemblance,&tracoC);
+        CMP(listaTracos[tracos],Cini,Cfin,incr,wind,&tracoEmpilhado,&tracoSemblance,&tracoC);
 
         //Copiar os tracos resultantes nos arquivos de saida
         fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
@@ -125,12 +125,11 @@ int main (int argc, char **argv)
     return 1;
 }
 
-float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha, float vel)
+float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha)
 {
     int traco;
     float t, h;
     int amostra, k;
-    //int w = (int) ceil(wind/seg);
     int w = (int) (wind/seg);
     int janela = 2*w+1;
     int N;
@@ -139,15 +138,13 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
     float valor;
     int j;
     int erro;
-    //printf("w=%d janela=%d\n", w, janela);
+
     //Numerador e denominador da funcao semblance zerados
     memset(&numerador,0,sizeof(numerador));
     denominador = 0;
     //Para cada traco do conjunto
     N = 0;
     erro = 0;
-    //printf("\t %f [%d]", C, janela);
-    //if(vel>439.0 && vel<440) printf("%f <<<< ", vel);
     for(traco=0; traco<lista->tamanho; traco++){
         //Calcular metade do offset do traco
         h = HalfOffset(lista->tracos[traco]);
@@ -162,37 +159,31 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
                 k = amostra - w + j;
                 //Interpolacao linear entre as duas amostras
                 InterpolacaoLinear(&valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
-                ///printf("%d  valor: %.20f [k]:%f [k+1]:%f t/seg-w+j=%f, k:%d, k+1:%d\n", j, valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
                 numerador[j] += valor;
                 denominador += valor*valor;
                 *pilha += valor;
-                //if(vel>439.0 && vel<440) printf("%f ", valor);
             }
             N++;
         }
         else{
             erro++;
         }
-        //if(vel>439.0 && vel<440) printf(".\n");
-        //printf("ERRO=%d amostra=%d w=%d ns=%d  (%d >= 0 && %d < %d)\n", erro, amostra, w, lista->tracos[traco]->ns, amostra-w, amostra+w, lista->tracos[traco]->ns);
         if(erro == 2) return -1;
     }
-    //if(vel>439.0 && vel<440) getchar();
     num = 0;
     for(j=0; j<janela; j++){
         num += numerador[j]*numerador[j];
     }
-    //printf("   %.20f %.20f %d (%d)  \t\t", num, denominador, N, lista->tamanho);
+
     *pilha = (*pilha)/N/janela;
-    //printf("*%f ", num/N/denominador);
+
     return num / N / denominador;
 
 }
 
-void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC)
+void CMP(ListaTracos *lista, float Cini, float Cfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC)
 {
     int amostra, amostras;
-    float vel, bestVel;
     float seg, t0;
     float h;
     float C, bestC;
@@ -208,7 +199,7 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind,
     tracoSemblance->dados = malloc(sizeof(float)*amostras);
     tracoC->dados = malloc(sizeof(float)*amostras);
 
-    incr = (velfin-velini)/incr;
+    incr = (Cfin-Cini)/incr;
 
     //Para cada amostra do primeiro traco
     for(amostra=0; amostra<amostras; amostra++){
@@ -217,45 +208,26 @@ void CMP(ListaTracos *lista, float velini, float velfin, float incr, float wind,
 
         //Inicializar variaveis antes da busca
         pilha = lista->tracos[0]->dados[amostra];
-        /*
-        bestVel = velini;
-        bestC = 4/(velini*velini);
-        */
-        bestVel = 2/sqrt(velini);
-        bestC = velini;
+
+        bestC = Cini;
         bestS = 0;
-        //printf("%.10f %.10f %.10f\n",velini, velfin, incr);
-        //Para cada velocidade
-        for(vel=velini; vel<=velfin; vel+=incr){
-            //Calcular o termo do calculo da hiperbole
-            //C = 4/(vel*vel);
-            C = vel;
+        //Para cada constante C
+        for(C=Cini; C<=Cfin; C+=incr){
             //Calcular semblance
             pilhaTemp = 0;
-            s = Semblance(lista,C,t0,wind,seg,&pilhaTemp,vel);
-            //printf("%f\n", s);
-            if(s<0 && s!=-1) printf("S NEGATIVO\n");
-            if(s>1) {printf("S MAIOR Q UM %.20f\n", s); getchar();}
-            //if(s == -1) break; //printf("ERRO NO SEMBLANCE");
+            s = Semblance(lista,C,t0,wind,seg,&pilhaTemp);
+            if(s<0 && s!=-1) {printf("S NEGATIVO\n"); exit(1);}
+            if(s>1) {printf("S MAIOR Q UM %.20f\n", s); exit(1);}
             else if(s > bestS){
-                //printf("\n*****%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
                 bestS = s;
                 bestC = C;
-                bestVel = 2/sqrt(C);
-                //bestVel = vel;
                 pilha = pilhaTemp;
             }
-            else{
-                ;//printf("\n%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
-            }
-            if(vel >=1830 && vel <=1831)
-                ;//printf("\n>>>%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, s, C, vel, pilhaTemp);
         }
         tracoEmpilhado->dados[amostra] = pilha;
         tracoSemblance->dados[amostra] = bestS;
         tracoC->dados[amostra] = bestC;
-        //printf("\n%d S=%.10f C=%.20f Vel=%.10f Pilha=%.10f\n", amostra, bestS, bestC, bestVel, pilha);
-        //break;
+        //printf("\n%d S=%.10f C=%.20f Pilha=%.10f\n", amostra, bestS, bestC, pilha);
     }
 }
 

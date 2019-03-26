@@ -1,22 +1,30 @@
-cflags= -g -O3 -Wall -std=c99 -pedantic -lm
+CC = gcc
+SRCEXT := c
 
-compile = gcc
+BUILDDIR := obj
+SRCDIR := src
+BINDIR := bin
+TARGET := bin/cmp
 
-program = main
+SOURCES := $(wildcard $(SRCDIR)/*.$(SRCEXT))
+OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
+CFLAGS := -g -O3 -Wall -std=c99 -pedantic -lm
+LIB := -L lib
+INC := -I include
 
-class = seismicunix
 
-csources = $(program).c  $(class).c
 
-cobjects = $(program).o $(class).o
+$(TARGET): $(OBJECTS)
+	@mkdir -p $(BINDIR)
+	$(CC) $^ -o $(TARGET) $(CFLAGS) $(INC)
 
-$(program): $(cobjects)
-	$(compile) -o $(program) $(cobjects) $(cflags)
-
-$(cobjects): $(csources)
-	$(compile) $^ -c
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
+	@mkdir -p $(BUILDDIR)
+	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
 clean:
-	rm -r $(program)
-	rm -r $(cobjects)
-	rm -r *.h.gch
+	@echo Cleaning...
+	rm -rf bin/
+	rm -rf obj/
+
+.PHONY: clean

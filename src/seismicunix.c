@@ -77,8 +77,36 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
 
     fclose(arquivo);
 
+/*
+    for(i=0; i<*tamanhoLista; i++){
+        printf("cdp: %d (%d/%ld)\n", (*listaTracos)[i]->cdp,  (*listaTracos)[i]->tamanho,sizeof((*listaTracos)[i]->tracos));
+        for(int j=0; j<(*listaTracos)[i]->tamanho; j++){
+            float x, y, d;
+            OffsetSU((*listaTracos)[i]->tracos[j],&x,&y);
+            d = sqrt(x*x+y*y);
+            printf("\t%f %f = %f  (%p)\n", x, y, d, (*listaTracos)[i]->tracos[j]);
+        }
+        printf("\n--\n");
+        //getchar();
+    }
+*/
+    //Ordenar por offset cada conjunto
+    for(i=0; i<*tamanhoLista; i++)
+        qsort((*listaTracos)[i]->tracos,(*listaTracos)[i]->tamanho,sizeof(Traco**),comparaOffset);
+
     //PrintListaTracosSU(*listaTracos,*tamanhoLista);
     return 1;
+}
+
+int comparaOffset(Traco **a, Traco **b)
+{
+    float ax, ay, ad;
+    float bx, by, bd;
+    OffsetSU(*a,&ax,&ay);
+    ad = sqrt(ax*ax+ay*ay);
+    OffsetSU(*b,&bx,&by);
+    bd = sqrt(bx*bx+by*by);
+    return ad-bd;
 }
 
 float ScalcoSU(Traco *traco)

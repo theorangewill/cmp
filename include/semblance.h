@@ -29,6 +29,13 @@
  */
 float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha);
 
+
+/*
+ * Calcula a metade do offset.
+ */
+float HalfOffset(Traco *traco);
+
+
 /*
  * Realiza interpolacao linear.
  */

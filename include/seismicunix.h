@@ -15,6 +15,11 @@
 #endif
 
 
+#ifndef MATH_H
+#include <math.h>
+#define MATH_H
+#endif
+
 #define SEISMIC_UNIX_HEADER 240
 
 /*! \brief Registro do traço sísmico.
@@ -130,6 +135,11 @@ float ScalcoSU(Traco *traco);
  * Calcula a metade do offset.
  */
 void OffsetSU(Traco *traco, float *hx, float *hy);
+
+/*
+ * Função para comparar dois offsets
+ */
+int comparaOffset(Traco **a, Traco **b);
 
 /*
  * Imprime o cabecalho do traco.

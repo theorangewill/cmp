@@ -66,6 +66,17 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
 }
 
 
+float HalfOffset(Traco *traco)
+{
+    float hx, hy;
+    //Calcula os eixos x e y
+    OffsetSU(traco,&hx,&hy);
+    //Metade
+    hx/=2;
+    hy/=2;
+    //Retorna a raiz quadrada do quadrado dos eixos
+    return sqrt(hx*hx + hy*hy);
+}
 
 void InterpolacaoLinear(float *x, float x0, float x1, float y, float y0, float y1)
 {

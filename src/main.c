@@ -36,11 +36,6 @@ void CMP(ListaTracos *lista, float Cini, float Cfin, float incr, float wind, Tra
 void SetCabecalhoCMP(Traco *traco);
 
 /*
- * Calcula a metade do offset.
- */
-float HalfOffset(Traco *traco);
-
-/*
  * Libera memoria alocada para o programa.
  */
 void LiberarMemoria(ListaTracos ***lista, int *tamanho);
@@ -195,19 +190,6 @@ void SetCabecalhoCMP(Traco *traco)
     traco->gx = mx;
     traco->gy = my;
 }
-
-float HalfOffset(Traco *traco)
-{
-    float hx, hy;
-    //Calcula os eixos x e y
-    OffsetSU(traco,&hx,&hy);
-    //Metade
-    hx/=2;
-    hy/=2;
-    //Retorna a raiz quadrada do quadrado dos eixos
-    return sqrt(hx*hx + hy*hy);
-}
-
 
 void LiberarMemoria(ListaTracos ***lista, int *tamanho)
 {

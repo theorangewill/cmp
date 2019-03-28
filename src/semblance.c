@@ -9,7 +9,19 @@
 #define SEMBLANCE_H
 #endif
 
-float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha)
+
+float time2D(float A, float B, float C, float t0, float h, float md)
+{
+    float temp;
+    temp = t0+A*md;
+    temp = temp*temp;
+    temp = B*md*md;
+    temp = C*h*h;
+    return sqrt(temp);
+
+}
+
+float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha)
 {
     int traco;
     float t, h;
@@ -33,7 +45,7 @@ float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, fl
         //Calcular metade do offset do traco
         h = HalfOffset(lista->tracos[traco]);
         //Calcular o tempo de acordo com a funcao da hiperbole
-        t = sqrt(t0*t0 + C*h*h);
+        t = time2D(A,B,C,t0,h,md);
         //Calcular a amostra equivalente ao tempo calculado
         amostra = (int) (t/seg);
         //Se a janela da amostra cobre os dados sismicos

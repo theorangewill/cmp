@@ -114,10 +114,12 @@ typedef struct {
 
 /*! \brief Registro de conjunto de traços sísmicos de mesmo CDP.
 */
-typedef struct {
+typedef struct ListaTracos {
   int cdp; /**< CDP do conjunto. */
-  int tamanho; /**< Quantidade de tracos. */
   int capacidade; /**< Tamanho alocado para o vetor tracos. */
+  int numeroVizinhos; /**< Numero de vizinhos. */
+  ListaTracos **vizinhos; /**< CDPs vizinhos. */
+  int tamanho; /**< Quantidade de tracos. */
   Traco **tracos; /**< Tracos. */
 }ListaTracos;
 
@@ -139,7 +141,7 @@ void OffsetSU(Traco *traco, float *hx, float *hy);
 /*
  * Função para comparar dois offsets
  */
-int comparaOffset(Traco **a, Traco **b);
+int comparaOffset(const void* a, const void* b);
 
 /*
  * Imprime o cabecalho do traco.

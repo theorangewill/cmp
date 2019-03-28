@@ -13,7 +13,6 @@ LIB := -L lib
 INC := -I include
 
 
-
 $(TARGET): $(OBJECTS)
 	@mkdir -p $(BINDIR)
 	$(CC) $^ -o $(TARGET) $(CFLAGS) $(INC)

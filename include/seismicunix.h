@@ -128,7 +128,7 @@ struct ListaTracos{
 /*
  * Le o arquivo do dado sismico SU.
  */
-int LeitorArquivoSU(char* arquivo, ListaTracos ***listaTracos, int *tamanhoLista);
+int LeitorArquivoSU(char* arquivo, ListaTracos ***listaTracos, int *tamanhoLista, float aph);
 
 /*
  * Retorna o scalco multiplicado (se positivo) ou dividindo (se negativo).

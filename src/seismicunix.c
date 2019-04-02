@@ -9,10 +9,11 @@
 #define SEISMICUNIX_H
 #endif
 
-int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLista)
+int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLista, float aph)
 {
     int i;
     int flag;
+    float hx, hy;
     Traco *traco;
     FILE *arquivo = fopen(argumento, "r");
 
@@ -31,6 +32,7 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
         //Leitura do cabecalho do traco
         if(fread(traco, SEISMIC_UNIX_HEADER, 1, arquivo) < 1) break;
 
+        
         //Aloca memoria para os dados sismicos
         //traco->ns numero de amostras
         traco->dados = malloc(sizeof(float) * traco->ns);
@@ -39,6 +41,16 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
 
         //Leitura das amostras
         if(fread(traco->dados, sizeof(float), traco->ns, arquivo) < 1) break;
+
+        //Verificar o aperture
+        OffsetSU(traco,&hx,&hy);
+        hx/=2;
+        hy/=2;
+        if(hx*hx + hy*hy > aph*aph){
+            free(traco->dados);
+            free(traco);
+            continue;
+        }
 
         //PrintTracoSU(traco);
 

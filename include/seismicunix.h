@@ -114,14 +114,16 @@ typedef struct {
 
 /*! \brief Registro de conjunto de traços sísmicos de mesmo CDP.
 */
-typedef struct ListaTracos {
+typedef struct ListaTracos ListaTracos;
+
+struct ListaTracos{
   int cdp; /**< CDP do conjunto. */
   int capacidade; /**< Tamanho alocado para o vetor tracos. */
   int numeroVizinhos; /**< Numero de vizinhos. */
-  ListaTracos **vizinhos; /**< CDPs vizinhos. */
+  struct ListaTracos **vizinhos; /**< CDPs vizinhos. */
   int tamanho; /**< Quantidade de tracos. */
   Traco **tracos; /**< Tracos. */
-}ListaTracos;
+};
 
 /*
  * Le o arquivo do dado sismico SU.
@@ -137,6 +139,17 @@ float ScalcoSU(Traco *traco);
  * Calcula a metade do offset.
  */
 void OffsetSU(Traco *traco, float *hx, float *hy);
+
+
+/*
+ * Calcula o ponto médio.
+ */
+void MidpointSU(Traco *traco, float *mx, float *my);
+
+/*
+ * Computa os vizinhos.
+ */
+void ComputarVizinhos(ListaTracos **lista, int tamanho, int traco, float md);
 
 /*
  * Função para comparar dois offsets

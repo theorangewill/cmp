@@ -34,6 +34,8 @@ float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float w
     float valor;
     int j;
     int erro;
+    int vizinho;
+    float md, mx, my, vx, vy, dx, dy;
 
     //Numerador e denominador da funcao semblance zerados
     memset(&numerador,0,sizeof(numerador));
@@ -45,7 +47,7 @@ float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float w
         //Calcular metade do offset do traco
         h = HalfOffset(lista->tracos[traco]);
         //Calcular o tempo de acordo com a funcao da hiperbole
-        t = time2D(A,B,C,t0,h,md);
+        t = time2D(A,B,C,t0,h,0);
         //Calcular a amostra equivalente ao tempo calculado
         amostra = (int) (t/seg);
         //Se a janela da amostra cobre os dados sismicos
@@ -65,6 +67,41 @@ float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float w
             erro++;
         }
         if(erro == 2) return -1;
+    }
+
+    //Para cada vizinho, se é CMP, vizinhos = 0;
+    MidpointSU(lista->tracos[0],&mx,&my);
+    for(vizinho=0; vizinho<lista->numeroVizinhos; vizinho++){
+      MidpointSU(lista->vizinhos[vizinho]->tracos[0],&vx,&vy);
+      dx = vx - mx;
+      dy = vy - my;
+      md = sqrt(dx*dx + dy*dy);
+      erro = 0;
+      for(traco=0; traco<lista->vizinhos[vizinho]->tamanho; traco++){
+          //Calcular metade do offset do traco
+          h = HalfOffset(lista->vizinhos[vizinho]->tracos[traco]);
+          //Calcular o tempo de acordo com a funcao da hiperbole
+          t = time2D(A,B,C,t0,h,md);
+          //Calcular a amostra equivalente ao tempo calculado
+          amostra = (int) (t/seg);
+          //Se a janela da amostra cobre os dados sismicos
+          if(amostra - w >= 0 && amostra + w < lista->vizinhos[vizinho]->tracos[traco]->ns){
+              //Para cada amostra dentro da janela
+              for(j=0; j<janela; j++){
+                  k = amostra - w + j;
+                  //Interpolacao linear entre as duas amostras
+                  InterpolacaoLinear(&valor,lista->vizinhos[vizinho]->tracos[traco]->dados[k],lista->vizinhos[vizinho]->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
+                  numerador[j] += valor;
+                  denominador += valor*valor;
+                  *pilha += valor;
+              }
+              N++;
+          }
+          else{
+              erro++;
+          }
+          if(erro == 2) return -1;
+      }
     }
     num = 0;
     for(j=0; j<janela; j++){
@@ -94,4 +131,3 @@ void InterpolacaoLinear(float *x, float x0, float x1, float y, float y0, float y
 {
     *x = x0 + (x1- x0) * (y - y0) / (y1 - y0);
 }
-

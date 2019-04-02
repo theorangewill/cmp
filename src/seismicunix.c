@@ -69,6 +69,8 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
             (*listaTracos)[*tamanhoLista]->cdp = traco->cdp;
             (*listaTracos)[*tamanhoLista]->capacidade = 10;
             (*listaTracos)[*tamanhoLista]->tamanho = 1;
+            (*listaTracos)[*tamanhoLista]->numeroVizinhos = 0;
+            (*listaTracos)[*tamanhoLista]->vizinhos = NULL;
             (*listaTracos)[*tamanhoLista]->tracos = (Traco**) malloc(sizeof(Traco*)*10);
             (*listaTracos)[*tamanhoLista]->tracos[0] = traco;
             (*tamanhoLista)++;
@@ -76,7 +78,7 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
     }
 
     fclose(arquivo);
-    
+
     /*
 
     for(i=0; i<*tamanhoLista; i++){
@@ -135,49 +137,42 @@ void OffsetSU(Traco *traco, float *hx, float *hy)
 }
 
 
-void MidpointSU(Traco *traco, float *hx, float *hy)
+void MidpointSU(Traco *traco, float *mx, float *my)
 {
 	float scalco;
-    //Calcula o scalco, valor a ser multiplicado pelas dimensoes para torná-los numeros reais
-    scalco = ScalcoSU(traco);
-    //Eixo x
-	*hx = scalco*(traco->gx+traco->sx)/2;
+  //Calcula o scalco, valor a ser multiplicado pelas dimensoes para torná-los numeros reais
+  scalco = ScalcoSU(traco);
+  //Eixo x
+	*mx = scalco*(traco->gx+traco->sx)/2;
     //Eixo y
-	*hy = scalco*(traco->gy+traco->sy)/2;
+	*my = scalco*(traco->gy+traco->sy)/2;
 }
 
-void computarVizinhos(ListaTracos **lista, int tamanho, int traco, float md)
+void ComputarVizinhos(ListaTracos **lista, int tamanho, int traco, float md)
 {
     int i;
     float midx, midy;
     float vizx, vizy;
     float distx, disty;
 
-    MidpointSU(lista[traco], &midx, &midy);
+    MidpointSU(lista[traco]->tracos[0], &midx, &midy);
 
-    for(i=0; i<tamanho, i++){
+    for(i=0; i<tamanho; i++){
         if(i == traco) continue;
-        MidpointSU(lista[i], &vizx, &vizu);
+        MidpointSU(lista[i]->tracos[0], &vizx, &vizy);
         distx = midx - vizx;
-        disty = midy - midx;
+        disty = midy - vizy;
         if(distx*distx + disty*disty <= md*md){
-            if(lista[traco]->numeroVizinhos == 0){
-                lista[traco]->vizinhos = malloc(sizeof(ListaTracos *));
-
-
             if(lista[traco]->numeroVizinhos == 0){
                 lista[traco]->vizinhos = (ListaTracos**) malloc(sizeof(ListaTracos*));
             }
             else{
-                lista[traco]->vizinhos = (ListaTracos**) realloc(*listaTracos,(lista[traco]->numeroVizinhos+1)*sizeof(ListaTracos*));
+                lista[traco]->vizinhos = (ListaTracos**) realloc((lista[traco]->vizinhos),(lista[traco]->numeroVizinhos+1)*sizeof(ListaTracos*));
             }
             lista[traco]->vizinhos[lista[traco]->numeroVizinhos] = lista[traco];
             (lista[traco]->numeroVizinhos)++;
-
-            }
         }
     }
-
 }
 
 

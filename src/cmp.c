@@ -28,17 +28,26 @@
 /*
  * Algoritmo CRS.
  */
-void CRS(ListaTracos *lista, float Cini, float Cfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC);
+void CRS(ListaTracos *lista, float Aini, float Afin, float Ainc,
+          float Bini, float Bfin, float Binc, float Cini,
+          float Cfin, float Cinc, float wind, Traco* tracoEmpilhado,
+          Traco* tracoSemblance, Traco* tracoA, Traco* tracoB, Traco* tracoC);
+
+/*
+ * Seta os campos do cabecalho para o empilhamento
+ */
+void SetCabecalhoCRS(Traco *traco);
+
 
 /*
  * Algoritmo CMP.
- */
+ *
 void CMP(ListaTracos *lista, float Cini, float Cfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC);
 
 
 /*
  * Seta os campos do cabecalho para o empilhamento
- */
+ *
 void SetCabecalhoCMP(Traco *traco);
 
 /*
@@ -107,7 +116,7 @@ int main (int argc, char **argv)
 
         //Execucao do CMP
         CMP(listaTracos[tracos],Cini,Cfin,Cinc,wind,&tracoEmpilhado,&tracoSemblance,&tracoC);
-        
+
         //Copiar os tracos resultantes nos arquivos de saida
         fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
         fwrite(&(tracoEmpilhado.dados[0]),sizeof(float),tracoEmpilhado.ns,arquivoEmpilhado);
@@ -144,10 +153,10 @@ int main (int argc, char **argv)
     float wind, md;
     int tracos;
     char saida[101], saidaEmpilhado[104], saidaSemblance[104], saidaA[104], saidaB[104], saidaC[104];
-    FILE *arquivoEmpilhado, *arquivoSemblance, *arquivoA. *arquivoB, *arquivoC;
+    FILE *arquivoEmpilhado, *arquivoSemblance, *arquivoA, *arquivoB, *arquivoC;
     Traco tracoSemblance, tracoA, tracoB, tracoC, tracoEmpilhado;
 
-    if(argc < 14){
+    if(argc < 13){
         printf("ERRO: ./main <dado sismico> A_INI A_FIN A_INC B_INI B_FIN B_INC C_INI C_FIN C_INC MD WIND\n");
         printf("\tARQUIVO: rodar susort <entrada.su >saida.su cdp offset (ordenar os traços em cdp e offset\n");
         printf("\tA_INI:  constante A inicial\n");
@@ -187,51 +196,57 @@ int main (int argc, char **argv)
     argv[1][strlen(argv[1])-3] = '\0';
     strcpy(saida,argv[1]);
     strcpy(saidaEmpilhado,saida);
-    strcat(saidaEmpilhado,"-empilhado.su");
+    strcat(saidaEmpilhado,"-empilhado.out.su");
     arquivoEmpilhado = fopen(saidaEmpilhado,"w");
     strcpy(saidaSemblance,saida);
-    strcat(saidaSemblance,"-semblance.su");
+    strcat(saidaSemblance,"-semblance.out.su");
     arquivoSemblance = fopen(saidaSemblance,"w");
     strcpy(saidaA,saida);
-    strcat(saidaA,"-A.su");
+    strcat(saidaA,"-A.out.su");
     arquivoA = fopen(saidaA,"w");
     strcpy(saidaB,saida);
-    strcat(saidaB,"-C.su");
+    strcat(saidaB,"-B.out.su");
     arquivoB = fopen(saidaB,"w");
     strcpy(saidaC,saida);
-    strcat(saidaC,"-C.su");
+    strcat(saidaC,"-C.out.su");
     arquivoC = fopen(saidaC,"w");
 
     //Rodar o CMP para cada conjunto de tracos de mesmo cdp
     for(tracos=0; tracos<tamanhoLista; tracos++){
-      //if(listaTracos[tracos]->cdp != 93) continue;
-        //if(listaTracos[tracos]->tamanho <= 4) continue;
         printf("\t%d[%d] (cdp= %d) de %d\n", tracos, listaTracos[tracos]->tamanho, listaTracos[tracos]->cdp, tamanhoLista);
         //PrintTracoSU(listaTracos[tracos]->tracos[0]);
 
         //Copiar cabecalho do conjunto dos tracos para os tracos de saida
         memcpy(&tracoEmpilhado,listaTracos[tracos]->tracos[0], SEISMIC_UNIX_HEADER);
         //E necessario setar os conteudos de offset e coordenadas de fonte e receptores
-        SetCabecalhoCRP(&tracoEmpilhado);
+        SetCabecalhoCRS(&tracoEmpilhado);
         memcpy(&tracoSemblance,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
+        memcpy(&tracoA,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
+        memcpy(&tracoB,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
         memcpy(&tracoC,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
 
         //Computar os vizinhos do cdp
-        computarVizinhos(listaTracos,tamanhoLista,tracos,md);
+        ComputarVizinhos(listaTracos,tamanhoLista,tracos,md);
         //Execucao do CRS
-        CRS(listaTracos[tracos],Aini,Afin,Ainc,Bini,Bfin,Binc,Cini,Cfin,Cinc,wind,&tracoEmpilhado,&tracoSemblance,&tracoC);
-        
+        CRS(listaTracos[tracos],Aini,Afin,Ainc,Bini,Bfin,Binc,Cini,Cfin,Cinc,wind,&tracoEmpilhado,&tracoSemblance,&tracoA,&tracoB,&tracoC);
+
         //Copiar os tracos resultantes nos arquivos de saida
         fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
         fwrite(&(tracoEmpilhado.dados[0]),sizeof(float),tracoEmpilhado.ns,arquivoEmpilhado);
         fwrite(&tracoSemblance,SEISMIC_UNIX_HEADER,1,arquivoSemblance);
         fwrite(&(tracoSemblance.dados[0]),sizeof(float),tracoSemblance.ns,arquivoSemblance);
+        fwrite(&tracoA,SEISMIC_UNIX_HEADER,1,arquivoA);
+        fwrite(&(tracoA.dados[0]),sizeof(float),tracoA.ns,arquivoA);
+        fwrite(&tracoB,SEISMIC_UNIX_HEADER,1,arquivoB);
+        fwrite(&(tracoB.dados[0]),sizeof(float),tracoB.ns,arquivoB);
         fwrite(&tracoC,SEISMIC_UNIX_HEADER,1,arquivoC);
         fwrite(&(tracoC.dados[0]),sizeof(float),tracoC.ns,arquivoC);
 
         //Liberar memoria alocada nos dados do traco resultante
         free(tracoEmpilhado.dados);
         free(tracoSemblance.dados);
+        free(tracoA.dados);
+        free(tracoB.dados);
         free(tracoC.dados);
         //printf("\t%d[%d] (cdp= %d) de %d\n", tracos, listaTracos[tracos]->tamanho, listaTracos[tracos]->cdp, tamanhoLista);
         //break;
@@ -239,6 +254,8 @@ int main (int argc, char **argv)
 
     fclose(arquivoEmpilhado);
     fclose(arquivoSemblance);
+    fclose(arquivoA);
+    fclose(arquivoB);
     fclose(arquivoC);
 
     LiberarMemoria(&listaTracos, &tamanhoLista);
@@ -246,7 +263,7 @@ int main (int argc, char **argv)
     return 1;
 }
 
-
+/*
 void CMP(ListaTracos *lista, float Cini, float Cfin, float Cinc, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC)
 {
     int amostra, amostras;
@@ -296,10 +313,10 @@ void CMP(ListaTracos *lista, float Cini, float Cfin, float Cinc, float wind, Tra
     }
 }
 
-
-void CRS(ListaTracos *lista, float Aini, float Afin, float Ainc, 
+*/
+void CRS(ListaTracos *lista, float Aini, float Afin, float Ainc,
             float Bini, float Bfin, float Binc, float Cini,
-             float Cfin, float Cinc, float wind, Traco* tracoEmpilhado, 
+             float Cfin, float Cinc, float wind, Traco* tracoEmpilhado,
              Traco* tracoSemblance, Traco* tracoA, Traco* tracoB, Traco* tracoC)
 {
     int amostra, amostras;
@@ -317,23 +334,30 @@ void CRS(ListaTracos *lista, float Aini, float Afin, float Ainc,
     //Alocar memoria para os dados dos tracos resultantes
     tracoEmpilhado->dados = malloc(sizeof(float)*amostras);
     tracoSemblance->dados = malloc(sizeof(float)*amostras);
+    tracoA->dados = malloc(sizeof(float)*amostras);
+    tracoB->dados = malloc(sizeof(float)*amostras);
     tracoC->dados = malloc(sizeof(float)*amostras);
 
-    incr = (Cfin-Cini)/incr;
+    Ainc = (Afin-Aini)/Ainc;
+    Binc = (Bfin-Bini)/Binc;
+    Cinc = (Cfin-Cini)/Cinc;
 
     //Para cada amostra do primeiro traco
     for(amostra=0; amostra<amostras; amostra++){
+        printf("%d\n", amostra);
         //Calcula o segundo inicial
         t0 = amostra*seg;
 
         //Inicializar variaveis antes da busca
         pilha = lista->tracos[0]->dados[amostra];
 
+        bestA = Aini;
+        bestB = Bini;
         bestC = Cini;
         bestS = 0;
         //Para cada constante A, B e C
-        for(A=Aini, A<=Afin; A+=Ainc)
-        for(B=Bini, B<=Bfin; B+=Binc)
+        for(A=Aini; A<=Afin; A+=Ainc){
+        for(B=Bini; B<=Bfin; B+=Binc)
         for(C=Cini; C<=Cfin; C+=Cinc){
             //Calcular semblance
             pilhaTemp = 0;
@@ -348,6 +372,7 @@ void CRS(ListaTracos *lista, float Aini, float Afin, float Ainc,
                 pilha = pilhaTemp;
             }
         }
+      }
         tracoEmpilhado->dados[amostra] = pilha;
         tracoSemblance->dados[amostra] = bestS;
         tracoA->dados[amostra] = bestA;
@@ -355,8 +380,22 @@ void CRS(ListaTracos *lista, float Aini, float Afin, float Ainc,
         tracoC->dados[amostra] = bestC;
         //printf("\n%d S=%.10f C=%.20f Pilha=%.10f\n", amostra, bestS, bestC, pilha);
     }
+    printf("\n");
 }
 
+void SetCabecalhoCRS(Traco *traco)
+{
+    float mx, my;
+    MidpointSU(traco,&mx,&my);
+    //Offset zerado pois receptores e fonte estao na mesma coordenada
+    traco->offset = 0;
+    //Fonte e receptores na mesma coordenada
+    traco->sx = (int) mx;
+    traco->sy = (int) my;
+    traco->gx = (int) mx;
+    traco->gy = (int) my;
+}
+/*
 void SetCabecalhoCMP(Traco *traco)
 {
     int mx, my;
@@ -370,7 +409,7 @@ void SetCabecalhoCMP(Traco *traco)
     traco->gx = mx;
     traco->gy = my;
 }
-
+*/
 void LiberarMemoria(ListaTracos ***lista, int *tamanho)
 {
     LiberarMemoriaSU(lista,tamanho);

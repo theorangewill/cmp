@@ -27,7 +27,7 @@
 /*
  * Implementação da função semblance
  */
-float Semblance(ListaTracos *lista, float C, float t0, float wind, float seg, float *pilha);
+float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha);
 
 
 /*
@@ -40,4 +40,3 @@ float HalfOffset(Traco *traco);
  * Realiza interpolacao linear.
  */
 void InterpolacaoLinear(float *x, float x0, float x1, float y, float y0, float y1);
-

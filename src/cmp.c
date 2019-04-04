@@ -52,7 +52,7 @@ int main (int argc, char **argv)
 
     if(argc < 7){
         printf("ERRO: ./main <dado sismico> C_INI C_FIN C_INC WIND APH\n");
-        printf("\tARQUIVO: rodar susort <entrada.su >saida.su cdp offset (ordenar os traços em cdp e offset\n");
+        printf("\tARQUIVO: arquivo dos tracos sismicos\n");
         printf("\tC_INI:  constante C inicial\n");
         printf("\tC_FIN:  constante C final\n");
         printf("\tC_INC:    quantidade de C avaliados\n");
@@ -124,6 +124,7 @@ int main (int argc, char **argv)
 
     LiberarMemoria(&listaTracos, &tamanhoLista);
 
+    printf("SALVO NOS ARQUIVOS:\n\t%s\n\t%s\n\t%s\n",saidaEmpilhado,saidaSemblance,saidaC);
     return 1;
 }
 
@@ -175,6 +176,7 @@ void CMP(ListaTracos *lista, float Cini, float Cfin, float Cinc, float wind, Tra
         tracoSemblance->dados[amostra] = bestS;
         tracoC->dados[amostra] = bestC;
         //printf("\n%d S=%.10f C=%.20f Pilha=%.10f\n", amostra, bestS, bestC, pilha);
+        //getchar();
     }
 }
 

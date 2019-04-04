@@ -31,7 +31,6 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
 
         //Leitura do cabecalho do traco
         if(fread(traco, SEISMIC_UNIX_HEADER, 1, arquivo) < 1) break;
-
         
         //Aloca memoria para os dados sismicos
         //traco->ns numero de amostras
@@ -92,7 +91,6 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
     fclose(arquivo);
 
     /*
-
     for(i=0; i<*tamanhoLista; i++){
         printf("cdp: %d (%d/%ld)\n", (*listaTracos)[i]->cdp,  (*listaTracos)[i]->tamanho,sizeof((*listaTracos)[i]->tracos));
         for(int j=0; j<(*listaTracos)[i]->tamanho; j++){
@@ -103,14 +101,26 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
         }
         printf("\n--\n");
         //getchar();
-    }*/
+    }
+    */
 
     //Ordenar por offset cada conjunto
     for(i=0; i<*tamanhoLista; i++)
         qsort((*listaTracos)[i]->tracos,(*listaTracos)[i]->tamanho,sizeof(Traco**),comparaOffset);
 
+    //Ordenar por CDP
+    qsort((*listaTracos),*tamanhoLista,sizeof(ListaTracos*),comparaCDP);
+
     //PrintListaTracosSU(*listaTracos,*tamanhoLista);
     return 1;
+}
+
+int comparaCDP(const void* a, const void* b)
+{
+    ListaTracos **A = (ListaTracos **) a;
+    ListaTracos **B = (ListaTracos **) b;
+    //printf("COMPARANDO %d %d\n", (*A)->cdp, (*B)->cdp);
+    return (*A)->cdp - (*B)->cdp; 
 }
 
 int comparaOffset(const void* a, const void* b)
@@ -123,7 +133,7 @@ int comparaOffset(const void* a, const void* b)
     ad = sqrt(ax*ax+ay*ay);
     OffsetSU(*B,&bx,&by);
     bd = sqrt(bx*bx+by*by);
-    return -ad+bd;
+    return ad-bd;
 }
 
 float ScalcoSU(Traco *traco)

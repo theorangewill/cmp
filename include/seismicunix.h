@@ -157,6 +157,11 @@ void ComputarVizinhos(ListaTracos **lista, int tamanho, int traco, float md);
 int comparaOffset(const void* a, const void* b);
 
 /*
+ * Função para comparar dois cdps
+ */
+int comparaCDP(const void* a, const void* b);
+
+/*
  * Imprime o cabecalho do traco.
  */
 void PrintTracoCabecalhoSU(Traco *traco);

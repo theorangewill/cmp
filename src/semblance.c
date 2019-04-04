@@ -15,8 +15,8 @@ float time2D(float A, float B, float C, float t0, float h, float md)
     float temp;
     temp = t0+A*md;
     temp = temp*temp;
-    temp = B*md*md;
-    temp = C*h*h;
+    temp += B*md*md;
+    temp += C*h*h;
     return sqrt(temp);
 
 }

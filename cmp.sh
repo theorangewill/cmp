@@ -15,7 +15,7 @@ make clean
 rm instances/*.out.su
 
 make
-if [ "$2" == "valgrind" ]; then
+if [ "$1" == "valgrind" ]; then
 	valgrind ./bin/cmp $FILE $C_INI $C_FIN $C_INC $WIND $APH
 else   
 	./bin/cmp $FILE $C_INI $C_FIN $C_INC $WIND $APH

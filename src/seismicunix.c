@@ -119,7 +119,6 @@ int comparaCDP(const void* a, const void* b)
 {
     ListaTracos **A = (ListaTracos **) a;
     ListaTracos **B = (ListaTracos **) b;
-    //printf("COMPARANDO %d %d\n", (*A)->cdp, (*B)->cdp);
     return (*A)->cdp - (*B)->cdp; 
 }
 
@@ -149,24 +148,23 @@ float ScalcoSU(Traco *traco)
 
 void OffsetSU(Traco *traco, float *hx, float *hy)
 {
-	float scalco;
-    //Calcula o scalco, valor a ser multiplicado pelas dimensoes para torná-los numeros reais
-    scalco = ScalcoSU(traco);
-    //Eixo x
+  float scalco;
+  //Calcula o scalco, valor a ser multiplicado pelas dimensoes para torná-los numeros reais
+  scalco = ScalcoSU(traco);
+  //Eixo x
 	*hx = scalco*(traco->gx-traco->sx);
-    //Eixo y
+  //Eixo y
 	*hy = scalco*(traco->gy-traco->sy);
 }
 
-
 void MidpointSU(Traco *traco, float *mx, float *my)
 {
-	float scalco;
+  float scalco;
   //Calcula o scalco, valor a ser multiplicado pelas dimensoes para torná-los numeros reais
   scalco = ScalcoSU(traco);
   //Eixo x
 	*mx = scalco*(traco->gx+traco->sx)/2;
-    //Eixo y
+  //Eixo y
 	*my = scalco*(traco->gy+traco->sy)/2;
 }
 
@@ -191,12 +189,28 @@ void ComputarVizinhos(ListaTracos **lista, int tamanho, int traco, float md)
             else{
                 lista[traco]->vizinhos = (ListaTracos**) realloc((lista[traco]->vizinhos),(lista[traco]->numeroVizinhos+1)*sizeof(ListaTracos*));
             }
-            lista[traco]->vizinhos[lista[traco]->numeroVizinhos] = lista[traco];
+            lista[traco]->vizinhos[lista[traco]->numeroVizinhos] = lista[i];
             (lista[traco]->numeroVizinhos)++;
         }
     }
 }
 
+void PrintVizinhosSU(ListaTracos *tracos)
+{
+    int i;
+    float vx, vy, dx, dy, mx, my, md;
+
+    MidpointSU(tracos->tracos[0],&mx,&my);
+    printf("CDP: %d\n", tracos->cdp);
+    for(i=0; i<tracos->numeroVizinhos; i++){
+        MidpointSU(tracos->vizinhos[i]->tracos[0],&vx,&vy);
+        dx = vx - mx;
+        dy = vy - my;
+        md = sqrt(dx*dx + dy*dy);
+
+        printf("\tVIZ[%d]: %d (%.20f)\n", i,tracos->vizinhos[i]->cdp, md);
+    }
+}
 
 void PrintListaTracosSU(ListaTracos **lista, int tamanho)
 {

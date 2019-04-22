@@ -24,11 +24,19 @@
 #define STRING_H
 #endif
 
+#ifndef OMP_H
+#include "omp.h"
+#define OMP_H
+#endif
+
+#define NUM_THREADS 4
+
 /*
  * Algoritmo CMP.
  */
-void CMP(ListaTracos *lista, float Cini, float Cfin, float incr, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC);
-
+void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, 
+            float wind, float azimuth, Traco* tracoEmpilhado, 
+            Traco* tracoSemblance, Traco* tracoV);
 
 /*
  * Seta os campos do cabecalho para o empilhamento
@@ -44,30 +52,34 @@ int main (int argc, char **argv)
 {
     ListaTracos **listaTracos = NULL;
     int tamanhoLista = 0;
-    float Cini, Cfin, Cinc, wind, aph;
+    float wind, aph, azimuth;
+    float Vini, Vfin, Vint, Vinc;
+    float *Vvector, *Cvector;
     int tracos;
-    char saida[101], saidaEmpilhado[104], saidaSemblance[104], saidaC[104];
-    FILE *arquivoEmpilhado, *arquivoSemblance, *arquivoC;
-    Traco tracoSemblance, tracoC, tracoEmpilhado;
+    int i;
+    char saida[101], saidaEmpilhado[104], saidaSemblance[104], saidaV[104];
+    FILE *arquivoEmpilhado, *arquivoSemblance, *arquivoV;
+    Traco tracoSemblance, tracoEmpilhado, tracoV;
 
-    if(argc < 7){
-        printf("ERRO: ./main <dado sismico> C_INI C_FIN C_INC WIND APH\n");
+    if(argc < 8){
+        printf("ERRO: ./main <dado sismico> V_INI V_FIN V_INT WIND APH AZIMUTH\n");
         printf("\tARQUIVO: arquivo dos tracos sismicos\n");
-        printf("\tC_INI:  constante C inicial\n");
-        printf("\tC_FIN:  constante C final\n");
-        printf("\tC_INC:    quantidade de C avaliados\n");
-        printf("\tWIND:    janela do semblance (em amostras)\n");
+        printf("\tV_INI:  velocidade inicial\n");
+        printf("\tV_FIN:  velocidade final\n");
+        printf("\tV_INT:    quantidade de velocidades avaliadas\n");
+        printf("\tWIND:    janela do semblance\n");
         printf("\tAPH:  aperture\n");
+        printf("\tAZIMUTH:    azimuth\n");
         exit(1);
     }
 
-
     //Leitura dos parametros
-    Cini = atof(argv[2]);
-    Cfin = atof(argv[3]);
-    Cinc = atof(argv[4]);
+    Vini = atof(argv[2]);
+    Vfin = atof(argv[3]);
+    Vint = atof(argv[4]);
     wind = atof(argv[5]);
     aph = atof(argv[6]);
+    azimuth = atof(argv[7]);
 
     //Leitura do arquivo
     if(!LeitorArquivoSU(argv[1], &listaTracos, &tamanhoLista, aph)){
@@ -85,9 +97,18 @@ int main (int argc, char **argv)
     strcpy(saidaSemblance,saida);
     strcat(saidaSemblance,"-semblance.out.su");
     arquivoSemblance = fopen(saidaSemblance,"w");
-    strcpy(saidaC,saida);
-    strcat(saidaC,"-C.out.su");
-    arquivoC = fopen(saidaC,"w");
+    strcpy(saidaV,saida);
+    strcat(saidaV,"-V.out.su");
+    arquivoV = fopen(saidaV,"w");
+
+    //Calcular os valores de busca para V e C
+    Vinc = (Vfin-Vini)/(Vint);
+    Vvector = malloc(sizeof(float)*(Vint));
+    Cvector = malloc(sizeof(float)*(Vint));
+    for(i=0; i<Vint; i++){
+      Vvector[i] = Vinc*i+Vini;
+      Cvector[i] = 4/Vvector[i]*1/Vvector[i];
+    }
 
     //Rodar o CMP para cada conjunto de tracos de mesmo cdp
     for(tracos=0; tracos<tamanhoLista; tracos++){
@@ -99,44 +120,46 @@ int main (int argc, char **argv)
         //E necessario setar os conteudos de offset e coordenadas de fonte e receptores
         SetCabecalhoCMP(&tracoEmpilhado);
         memcpy(&tracoSemblance,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
-        memcpy(&tracoC,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
+        memcpy(&tracoV,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
 
         //Execucao do CMP
-        CMP(listaTracos[tracos],Cini,Cfin,Cinc,wind,&tracoEmpilhado,&tracoSemblance,&tracoC);
+        CMP(listaTracos[tracos],Vvector,Cvector,Vint,wind,azimuth,&tracoEmpilhado,&tracoSemblance,&tracoV);
 
         //Copiar os tracos resultantes nos arquivos de saida
         fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
         fwrite(&(tracoEmpilhado.dados[0]),sizeof(float),tracoEmpilhado.ns,arquivoEmpilhado);
         fwrite(&tracoSemblance,SEISMIC_UNIX_HEADER,1,arquivoSemblance);
         fwrite(&(tracoSemblance.dados[0]),sizeof(float),tracoSemblance.ns,arquivoSemblance);
-        fwrite(&tracoC,SEISMIC_UNIX_HEADER,1,arquivoC);
-        fwrite(&(tracoC.dados[0]),sizeof(float),tracoC.ns,arquivoC);
+        fwrite(&tracoV,SEISMIC_UNIX_HEADER,1,arquivoV);
+        fwrite(&(tracoV.dados[0]),sizeof(float),tracoV.ns,arquivoV);
 
         //Liberar memoria alocada nos dados do traco resultante
         free(tracoEmpilhado.dados);
         free(tracoSemblance.dados);
-        free(tracoC.dados);
+        free(tracoV.dados);
     }
 
     fclose(arquivoEmpilhado);
     fclose(arquivoSemblance);
-    fclose(arquivoC);
+    fclose(arquivoV);
 
     LiberarMemoria(&listaTracos, &tamanhoLista);
 
-    printf("SALVO NOS ARQUIVOS:\n\t%s\n\t%s\n\t%s\n",saidaEmpilhado,saidaSemblance,saidaC);
+    printf("SALVO NOS ARQUIVOS:\n\t%s\n\t%s\n\t%s\n",saidaEmpilhado,saidaSemblance,saidaV);
     return 1;
 }
 
 
 
-void CMP(ListaTracos *lista, float Cini, float Cfin, float Cinc, float wind, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoC)
+void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float wind, float azimuth, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoV)
 {
     int amostra, amostras;
     float seg, t0;
-    float C, bestC;
+    float bestV;
+    float bestC;
     float s, bestS;
     float pilha, pilhaTemp;
+    int i;
 
     //Tempo entre amostras, convertido para segundos
     seg = ((float) lista->tracos[0]->dt)/1000000;
@@ -145,11 +168,12 @@ void CMP(ListaTracos *lista, float Cini, float Cfin, float Cinc, float wind, Tra
     //Alocar memoria para os dados dos tracos resultantes
     tracoEmpilhado->dados = malloc(sizeof(float)*amostras);
     tracoSemblance->dados = malloc(sizeof(float)*amostras);
-    tracoC->dados = malloc(sizeof(float)*amostras);
-
-    Cinc = (Cfin-Cini)/Cinc;
+    tracoV->dados = malloc(sizeof(float)*amostras);
 
     //Para cada amostra do primeiro traco
+#ifdef OMP_H
+#pragma omp parallel for firstprivate(lista,amostras,Vint,seg,wind,azimuth,Cvector,Vvector) private(bestV,bestC,bestS,i,pilha,pilhaTemp,t0,amostra,s)  shared(tracoEmpilhado,tracoSemblance,tracoV)
+#endif
     for(amostra=0; amostra<amostras; amostra++){
         //Calcula o segundo inicial
         t0 = amostra*seg;
@@ -157,24 +181,27 @@ void CMP(ListaTracos *lista, float Cini, float Cfin, float Cinc, float wind, Tra
         //Inicializar variaveis antes da busca
         pilha = lista->tracos[0]->dados[amostra];
 
-        bestC = Cini;
+        bestC = 0.0;
         bestS = 0;
+        bestV = 0.0;
         //Para cada constante C
-        for(C=Cini; C<=Cfin; C+=Cinc){
+        //for(C=Cini; C<=Cfin; C+=Cinc){
+        for(i=0; i<Vint; i++){
             //Calcular semblance
             pilhaTemp = 0;
-            s = Semblance(lista,0,0,C,t0,wind,seg,&pilhaTemp);
+            s = SemblanceCMP(lista,0.0,0.0,Cvector[i],t0,wind,seg,&pilhaTemp,azimuth);
             if(s<0 && s!=-1) {printf("S NEGATIVO\n"); exit(1);}
             if(s>1) {printf("S MAIOR Q UM %.20f\n", s); exit(1);}
             else if(s > bestS){
                 bestS = s;
-                bestC = C;
+                bestC = Cvector[i];
+                bestV = Vvector[i];
                 pilha = pilhaTemp;
             }
         }
         tracoEmpilhado->dados[amostra] = pilha;
         tracoSemblance->dados[amostra] = bestS;
-        tracoC->dados[amostra] = bestC;
+        tracoV->dados[amostra] = bestV;
         //printf("\n%d S=%.10f C=%.20f Pilha=%.10f\n", amostra, bestS, bestC, pilha);
         //getchar();
     }

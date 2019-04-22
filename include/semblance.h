@@ -27,13 +27,15 @@
 /*
  * Implementação da função semblance
  */
-float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha);
+float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha, float azimuth);
 
+
+float SemblanceCMP(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha, float azimuth);
 
 /*
  * Calcula a metade do offset.
  */
-float HalfOffset(Traco *traco);
+float HalfOffset(Traco *traco, float azimuth);
 
 
 /*

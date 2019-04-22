@@ -4,19 +4,20 @@
 
 #FILE=/home/william/Programas/referencia/data/simple-syntetic-micro_sorted.su
 #FILE=instances/simple-synthetic.su
-FILE=instances/simple-synthetic-cut.su
-C_INI=0.000000198
-C_FIN=0.00000177
-C_INC=101
+FILE=instances/simple-windowed.su
+V_INI=450.00
+V_FIN=6000.00
+V_INC=101
 WIND=0.002 
 APH=600
+AZIMUTH=0.0
 
 make clean
 rm instances/*.out.su
 
 make
 if [ "$1" == "valgrind" ]; then
-	valgrind ./bin/cmp $FILE $C_INI $C_FIN $C_INC $WIND $APH
+	valgrind ./bin/cmp $FILE $V_INI $V_FIN $V_INC $WIND $APH $AZIMUTH
 else   
-	./bin/cmp $FILE $C_INI $C_FIN $C_INC $WIND $APH
+	./bin/cmp $FILE $V_INI $V_FIN $V_INC $WIND $APH $AZIMUTH
 fi

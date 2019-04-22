@@ -162,6 +162,11 @@ int comparaOffset(const void* a, const void* b);
 int comparaCDP(const void* a, const void* b);
 
 /*
+ * Imprime os vizinhos de um CDP
+ */
+void PrintVizinhosSU(ListaTracos *tracos);
+
+/*
  * Imprime o cabecalho do traco.
  */
 void PrintTracoCabecalhoSU(Traco *traco);

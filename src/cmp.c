@@ -82,8 +82,21 @@ int main (int argc, char **argv)
     azimuth = atof(argv[7]);
 
     //Leitura do arquivo
-    if(!LeitorArquivoSU(argv[1], &listaTracos, &tamanhoLista, aph)){
+    if(!LeitorArquivoSU(argv[1], &listaTracos, &tamanhoLista, aph, azimuth)){
         printf("ERRO NA LEITURA\n");
+        exit(1);
+    }
+
+    ListaTracos **listaV, **listaSemblance;
+    int tamV, tamSemblance;
+
+    if(!LeitorArquivoSU(argv[8], &listaV, &tamV, aph, azimuth)){
+        printf("ERRO NA LEITURA V\n");
+        exit(1);
+    }
+
+    if(!LeitorArquivoSU(argv[9], &listaSemblance, &tamSemblance, aph, azimuth)){
+        printf("ERRO NA LEITURA Semblance\n");
         exit(1);
     }
 
@@ -125,6 +138,41 @@ int main (int argc, char **argv)
         //Execucao do CMP
         CMP(listaTracos[tracos],Vvector,Cvector,Vint,wind,azimuth,&tracoEmpilhado,&tracoSemblance,&tracoV);
 
+        float seg = ((float) listaTracos[tracos]->tracos[0]->dt)/1000000;
+        int amostras = listaTracos[tracos]->tracos[0]->ns;
+        float pilhaTemp;
+        for(i=0; i<1 ; i++){
+            float t0 = i*seg;
+            printf("\nCDP: %d amostra:%d\n", listaTracos[tracos]->cdp, i);
+            float nA, nAng, nB, nC, nV, nS;
+            /*nA = 2.0*sin(listaA[tracos]->tracos[0]->dados[i]*PI/180) /Av0;
+            nAng = listaA[tracos]->tracos[0]->dados[i];
+            nB = listaB[tracos]->tracos[0]->dados[i];*/
+            nC = 4/listaV[tracos]->tracos[0]->dados[i]/listaV[tracos]->tracos[0]->dados[i];
+            nV = listaV[tracos]->tracos[0]->dados[i];
+            nS = listaSemblance[tracos]->tracos[0]->dados[i];
+            float mA, mAng, mB, mC, mV, mS;
+            /*mA = 2.0*sin(tracoA.dados[i]*PI/180)/Av0;
+            mAng = tracoA.dados[i];
+            mB = tracoB.dados[i];*/
+            mC = 4/tracoV.dados[i]/tracoV.dados[i];
+            mV = tracoV.dados[i];
+            mS = tracoSemblance.dados[i];
+            //printf("\nA:%.20lf Angulo:%.20lf B:%.20lf C:%.20lf V:%.20lf\n", nA, nAng, nB, nC, nV);
+            //printf("A:%.20lf Angulo:%.20lf B:%.20lf C:%.20lf V:%.20lf\n\n", mA, mAng, mB, mC, mV);
+            printf("\nC:%.20lf V:%.20lf\n", nC, nV);
+            printf("C:%.20lf V:%.20lf\n\n", mC, mV);
+            float s = Semblance(listaTracos[tracos],0.0,0.0,nC,t0,wind,seg,&pilhaTemp,azimuth);
+            float ms = Semblance(listaTracos[tracos],0.0,mB,mC,t0,wind,seg,&pilhaTemp,azimuth);
+            float delta = nS - s;
+            printf("%.20lf\n", delta);
+            printf("%.20lf == %.20lf (%.20lf == %.20lf)\n", s, nS, mS, ms);
+            if(listaSemblance[tracos]->tracos[0]->dados[i] > 0.5) getchar();
+            //if(s == -1) getchar();
+            //if( i == 17) getchar();
+            getchar();
+        }
+    printf("----------------------------\n");
         //Copiar os tracos resultantes nos arquivos de saida
         fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
         fwrite(&(tracoEmpilhado.dados[0]),sizeof(float),tracoEmpilhado.ns,arquivoEmpilhado);
@@ -174,7 +222,7 @@ void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float w
 #ifdef OMP_H
 #pragma omp parallel for firstprivate(lista,amostras,Vint,seg,wind,azimuth,Cvector,Vvector) private(bestV,bestC,bestS,i,pilha,pilhaTemp,t0,amostra,s)  shared(tracoEmpilhado,tracoSemblance,tracoV)
 #endif
-    for(amostra=0; amostra<amostras; amostra++){
+    for(amostra=0; amostra<1; amostra++){
         //Calcula o segundo inicial
         t0 = amostra*seg;
 
@@ -189,7 +237,7 @@ void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float w
         for(i=0; i<Vint; i++){
             //Calcular semblance
             pilhaTemp = 0;
-            s = SemblanceCMP(lista,0.0,0.0,Cvector[i],t0,wind,seg,&pilhaTemp,azimuth);
+            s = Semblance(lista,0.0,0.0,Cvector[i],t0,wind,seg,&pilhaTemp,azimuth);
             if(s<0 && s!=-1) {printf("S NEGATIVO\n"); exit(1);}
             if(s>1) {printf("S MAIOR Q UM %.20f\n", s); exit(1);}
             else if(s > bestS){

@@ -9,11 +9,11 @@
 #define SEISMICUNIX_H
 #endif
 
-int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLista, float aph)
+int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLista, float aph, float azimuth)
 {
     int i;
     int flag;
-    float hx, hy;
+    float hx, hy, h;
     Traco *traco;
     FILE *arquivo = fopen(argumento, "r");
 
@@ -45,7 +45,9 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
         OffsetSU(traco,&hx,&hy);
         hx/=2;
         hy/=2;
-        if(hx*hx + hy*hy > aph*aph){
+        h = hx * sin(azimuth) + hy * cos(azimuth);
+        if(h < 0) h = -h;
+        if(h >= aph){
             free(traco->dados);
             free(traco);
             continue;
@@ -90,20 +92,6 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
 
     fclose(arquivo);
 
-    /*
-    for(i=0; i<*tamanhoLista; i++){
-        printf("cdp: %d (%d/%ld)\n", (*listaTracos)[i]->cdp,  (*listaTracos)[i]->tamanho,sizeof((*listaTracos)[i]->tracos));
-        for(int j=0; j<(*listaTracos)[i]->tamanho; j++){
-            float x, y, d;
-            OffsetSU((*listaTracos)[i]->tracos[j],&x,&y);
-            d = sqrt(x*x+y*y);
-            printf("\t%f %f = %f  (%p)\n", x, y, d, (*listaTracos)[i]->tracos[j]);
-        }
-        printf("\n--\n");
-        //getchar();
-    }
-    */
-
     //Ordenar por offset cada conjunto
     for(i=0; i<*tamanhoLista; i++)
         qsort((*listaTracos)[i]->tracos,(*listaTracos)[i]->tamanho,sizeof(Traco**),comparaOffset);
@@ -139,10 +127,10 @@ float ScalcoSU(Traco *traco)
 {
     //Se positivo, envia o dado
     if (traco->scalco > 0)
-		return traco->scalco;
+		  return traco->scalco;
     //Se negativo, envia o inverso
-	else if (traco->scalco < 0)
-		return 1/traco->scalco;
+	  else if (traco->scalco < 0)
+		  return -1/traco->scalco;
     else return 1;
 }
 
@@ -152,7 +140,7 @@ void OffsetSU(Traco *traco, float *hx, float *hy)
   //Calcula o scalco, valor a ser multiplicado pelas dimensoes para torná-los numeros reais
   scalco = ScalcoSU(traco);
   //Eixo x
-	*hx = scalco*(traco->gx-traco->sx);
+  *hx = scalco*(traco->gx-traco->sx);
   //Eixo y
 	*hy = scalco*(traco->gy-traco->sy);
 }
@@ -168,21 +156,22 @@ void MidpointSU(Traco *traco, float *mx, float *my)
 	*my = scalco*(traco->gy+traco->sy)/2;
 }
 
-void ComputarVizinhos(ListaTracos **lista, int tamanho, int traco, float md)
+void ComputarVizinhos(ListaTracos **lista, int tamanho, int traco, float md, float azimuth)
 {
     int i;
-    float midx, midy;
-    float vizx, vizy;
-    float distx, disty;
+    float midx, midy, m;
+    float vizx, vizy, v;
+    float distx, disty, d;
 
     MidpointSU(lista[traco]->tracos[0], &midx, &midy);
-
+    m = midx * sin(azimuth) + midy * cos(azimuth);
     for(i=0; i<tamanho; i++){
         if(i == traco) continue;
         MidpointSU(lista[i]->tracos[0], &vizx, &vizy);
-        distx = midx - vizx;
-        disty = midy - vizy;
-        if(distx*distx + disty*disty <= md*md){
+        v = vizx * sin(azimuth) + vizy * cos(azimuth);
+        d = m-v;
+        if(d < 0) d = -d;
+        if(d <= md){
             if(lista[traco]->numeroVizinhos == 0){
                 lista[traco]->vizinhos = (ListaTracos**) malloc(sizeof(ListaTracos*));
             }

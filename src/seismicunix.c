@@ -161,7 +161,7 @@ void ComputarVizinhos(ListaTracos **lista, int tamanho, int traco, float md, flo
     int i;
     float midx, midy, m;
     float vizx, vizy, v;
-    float distx, disty, d;
+    float d;
 
     MidpointSU(lista[traco]->tracos[0], &midx, &midy);
     m = midx * sin(azimuth) + midy * cos(azimuth);

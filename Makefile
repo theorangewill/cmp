@@ -8,7 +8,7 @@ TARGET := bin/cmp
 
 SOURCES := $(wildcard $(SRCDIR)/*.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-CFLAGS := -g -O3 -Wall -std=c99 -pedantic -lm
+CFLAGS := -g -O3 -Wall -std=c99 -pedantic -lm -fopenmp 
 LIB := -L lib
 INC := -I include
 

@@ -138,23 +138,27 @@ int main (int argc, char **argv)
         //Execucao do CMP
         CMP(listaTracos[tracos],Vvector,Cvector,Vint,wind,azimuth,&tracoEmpilhado,&tracoSemblance,&tracoV);
 
-        float seg = ((float) listaTracos[tracos]->tracos[0]->dt)/1000000;
+        /*float seg = ((float) listaTracos[tracos]->tracos[0]->dt)/1000000;
         int amostras = listaTracos[tracos]->tracos[0]->ns;
         float pilhaTemp;
         for(i=0; i<1 ; i++){
             float t0 = i*seg;
             printf("\nCDP: %d amostra:%d\n", listaTracos[tracos]->cdp, i);
             float nA, nAng, nB, nC, nV, nS;
+            */
             /*nA = 2.0*sin(listaA[tracos]->tracos[0]->dados[i]*PI/180) /Av0;
             nAng = listaA[tracos]->tracos[0]->dados[i];
             nB = listaB[tracos]->tracos[0]->dados[i];*/
+            /*
             nC = 4/listaV[tracos]->tracos[0]->dados[i]/listaV[tracos]->tracos[0]->dados[i];
             nV = listaV[tracos]->tracos[0]->dados[i];
             nS = listaSemblance[tracos]->tracos[0]->dados[i];
             float mA, mAng, mB, mC, mV, mS;
+            */
             /*mA = 2.0*sin(tracoA.dados[i]*PI/180)/Av0;
             mAng = tracoA.dados[i];
             mB = tracoB.dados[i];*/
+            /*
             mC = 4/tracoV.dados[i]/tracoV.dados[i];
             mV = tracoV.dados[i];
             mS = tracoSemblance.dados[i];
@@ -163,7 +167,7 @@ int main (int argc, char **argv)
             printf("\nC:%.20lf V:%.20lf\n", nC, nV);
             printf("C:%.20lf V:%.20lf\n\n", mC, mV);
             float s = Semblance(listaTracos[tracos],0.0,0.0,nC,t0,wind,seg,&pilhaTemp,azimuth);
-            float ms = Semblance(listaTracos[tracos],0.0,mB,mC,t0,wind,seg,&pilhaTemp,azimuth);
+            float ms = Semblance(listaTracos[tracos],0.0,0.0,mC,t0,wind,seg,&pilhaTemp,azimuth);
             float delta = nS - s;
             printf("%.20lf\n", delta);
             printf("%.20lf == %.20lf (%.20lf == %.20lf)\n", s, nS, mS, ms);
@@ -172,7 +176,7 @@ int main (int argc, char **argv)
             //if( i == 17) getchar();
             getchar();
         }
-    printf("----------------------------\n");
+    printf("----------------------------\n");*/
         //Copiar os tracos resultantes nos arquivos de saida
         fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
         fwrite(&(tracoEmpilhado.dados[0]),sizeof(float),tracoEmpilhado.ns,arquivoEmpilhado);
@@ -204,7 +208,7 @@ void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float w
     int amostra, amostras;
     float seg, t0;
     float bestV;
-    float bestC;
+    //float bestC;
     float s, bestS;
     float pilha, pilhaTemp;
     int i;
@@ -220,20 +224,19 @@ void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float w
 
     //Para cada amostra do primeiro traco
 #ifdef OMP_H
-#pragma omp parallel for firstprivate(lista,amostras,Vint,seg,wind,azimuth,Cvector,Vvector) private(bestV,bestC,bestS,i,pilha,pilhaTemp,t0,amostra,s)  shared(tracoEmpilhado,tracoSemblance,tracoV)
+#pragma omp parallel for firstprivate(lista,amostras,Vint,seg,wind,azimuth,Cvector,Vvector) private(bestV,bestS,i,pilha,pilhaTemp,t0,amostra,s)  shared(tracoEmpilhado,tracoSemblance,tracoV)
 #endif
-    for(amostra=0; amostra<1; amostra++){
+    for(amostra=0; amostra<amostras; amostra++){
         //Calcula o segundo inicial
         t0 = amostra*seg;
 
         //Inicializar variaveis antes da busca
         pilha = lista->tracos[0]->dados[amostra];
 
-        bestC = 0.0;
+        //bestC = 0.0;
         bestS = 0;
         bestV = 0.0;
-        //Para cada constante C
-        //for(C=Cini; C<=Cfin; C+=Cinc){
+        //Para cada velocidade
         for(i=0; i<Vint; i++){
             //Calcular semblance
             pilhaTemp = 0;
@@ -242,7 +245,7 @@ void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float w
             if(s>1) {printf("S MAIOR Q UM %.20f\n", s); exit(1);}
             else if(s > bestS){
                 bestS = s;
-                bestC = Cvector[i];
+                //bestC = Cvector[i];
                 bestV = Vvector[i];
                 pilha = pilhaTemp;
             }

@@ -38,7 +38,6 @@ void InterpolacaoLinear(float *x, float x0, float x1, float y, float y0, float y
     *x = x0 + (x1- x0) * (y - y0) / (y1 - y0);
 }
 
-
 float SemblanceCMP(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha, float azimuth)
 {
     int traco;
@@ -128,31 +127,31 @@ float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float w
     erro = 0;
     //Para cada traco do conjunto
     for(traco=0; traco<lista->tamanho; traco++){
-        //Calcular metade do offset do traco
-        h = HalfOffset(lista->tracos[traco], azimuth);
-        //Calcular o tempo de acordo com a funcao da hiperbole
-        t = time2D(A,B,C,t0,h,0.0);
-        if(t < 0) continue;
-        //Calcular a amostra equivalente ao tempo calculado
-        amostra = (int) (t/seg);
-        //Se a janela da amostra cobre os dados sismicos
-        if(amostra - w >= 0 && amostra + w < lista->tracos[traco]->ns){
-            //Para cada amostra dentro da janela
-            for(j=0; j<janela; j++){
-                k = amostra - w + j;
-                //Interpolacao linear entre as duas amostras
-                InterpolacaoLinear(&valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
-                //printf("%.20lf %.20lf %.20lf %d %.20lf %d\n",lista->vizinhos[vizinho]->tracos[traco]->dados[k], valor, lista->vizinhos[vizinho]->tracos[traco]->dados[k+1], k, t/seg-w+j, k+1);
-                numerador[j] += valor;
-                denominador += valor*valor;
-                *pilha += valor;
-            }
-            N++;
+      //Calcular metade do offset do traco
+      h = HalfOffset(lista->tracos[traco], azimuth);
+      //Calcular o tempo de acordo com a funcao da hiperbole
+      t = time2D(A,B,C,t0,h,0.0);
+      if(t < 0) continue;
+      //Calcular a amostra equivalente ao tempo calculado
+      amostra = (int) (t/seg);
+      //Se a janela da amostra cobre os dados sismicos
+      if(amostra - w >= 0 && amostra + w < lista->tracos[traco]->ns){
+        //Para cada amostra dentro da janela
+        for(j=0; j<janela; j++){
+          k = amostra - w + j;
+          //Interpolacao linear entre as duas amostras
+          InterpolacaoLinear(&valor,lista->tracos[traco]->dados[k],lista->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
+          //printf("%.20lf %.20lf %.20lf %d %.20lf %d\n",lista->vizinhos[vizinho]->tracos[traco]->dados[k], valor, lista->vizinhos[vizinho]->tracos[traco]->dados[k+1], k, t/seg-w+j, k+1);
+          numerador[j] += valor;
+          denominador += valor*valor;
+          *pilha += valor;
         }
-        else{
-            erro++;
-        }
-        if(erro == 2) return -1;
+        N++;
+      }
+      else{
+        erro++;
+      }
+      if(erro == 2) return 0.0;
     }
 
     //Para cada vizinho, se é CMP, vizinhos = 0;
@@ -164,30 +163,30 @@ float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float w
       md = v0 - m0;
       erro = 0;
       for(traco=0; traco<lista->vizinhos[vizinho]->tamanho; traco++){
-          //Calcular metade do offset do traco
-          h = HalfOffset(lista->vizinhos[vizinho]->tracos[traco],azimuth);
-          //Calcular o tempo de acordo com a funcao da hiperbole
-          t = time2D(A,B,C,t0,h,md);
-          if(t < 0) continue;
-          //Calcular a amostra equivalente ao tempo calculado
-          amostra = (int) (t/seg);
-          //Se a janela da amostra cobre os dados sismicos
-          if(amostra - w >= 0 && amostra + w < lista->vizinhos[vizinho]->tracos[traco]->ns){
-              //Para cada amostra dentro da janela
-              for(j=0; j<janela; j++){
-                  k = amostra - w + j;
-                  //Interpolacao linear entre as duas amostras
-                  InterpolacaoLinear(&valor,lista->vizinhos[vizinho]->tracos[traco]->dados[k],lista->vizinhos[vizinho]->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
-                  numerador[j] += valor;
-                  denominador += valor*valor;
-                  *pilha += valor;
-              }
-              N++;
-          }
-          else{
-              erro++;
-          }
-          if(erro == 2) return -1;
+        //Calcular metade do offset do traco
+        h = HalfOffset(lista->vizinhos[vizinho]->tracos[traco],azimuth);
+        //Calcular o tempo de acordo com a funcao da hiperbole
+        t = time2D(A,B,C,t0,h,md);
+        if(t < 0) continue;
+        //Calcular a amostra equivalente ao tempo calculado
+        amostra = (int) (t/seg);
+        //Se a janela da amostra cobre os dados sismicos
+        if(amostra - w >= 0 && amostra + w < lista->vizinhos[vizinho]->tracos[traco]->ns){
+            //Para cada amostra dentro da janela
+            for(j=0; j<janela; j++){
+                k = amostra - w + j;
+                //Interpolacao linear entre as duas amostras
+                InterpolacaoLinear(&valor,lista->vizinhos[vizinho]->tracos[traco]->dados[k],lista->vizinhos[vizinho]->tracos[traco]->dados[k+1], t/seg-w+j, k, k+1);
+                numerador[j] += valor;
+                denominador += valor*valor;
+                *pilha += valor;
+            }
+            N++;
+        }
+        else{
+            erro++;
+        }
+        if(erro == 2) return 0.0;
       }
     }
 

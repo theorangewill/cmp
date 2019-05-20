@@ -103,16 +103,32 @@ int main (int argc, char **argv)
 
     //Criacao dos arquivos de saida
     argv[1][strlen(argv[1])-3] = '\0';
-    strcpy(saida,argv[1]);
+    strcpy(saida,"results");
+    for(i=strlen(argv[1])-1; argv[1][i] != '/' && i > 0; i--);
+    strcat(saida,&(argv[1][i]));
+    
     strcpy(saidaEmpilhado,saida);
     strcat(saidaEmpilhado,"-empilhado.out.su");
     arquivoEmpilhado = fopen(saidaEmpilhado,"w");
+	if(arquivoEmpilhado == NULL){
+        printf("ERRO NA ABERTURA DO ARQUIVO EMPILHADO\n");
+		return 0;
+	}
+
     strcpy(saidaSemblance,saida);
     strcat(saidaSemblance,"-semblance.out.su");
     arquivoSemblance = fopen(saidaSemblance,"w");
+	if(arquivoEmpilhado == NULL){
+        printf("ERRO NA ABERTURA DO ARQUIVO SEMBLANCE\n");
+		return 0;
+	}
     strcpy(saidaV,saida);
     strcat(saidaV,"-V.out.su");
     arquivoV = fopen(saidaV,"w");
+	if(arquivoEmpilhado == NULL){
+        printf("ERRO NA ABERTURA DO ARQUIVO V\n");
+		return 0;
+	}
 
     //Calcular os valores de busca para V e C
     Vinc = (Vfin-Vini)/(Vint);
@@ -126,18 +142,18 @@ int main (int argc, char **argv)
     //Rodar o CMP para cada conjunto de tracos de mesmo cdp
     for(tracos=0; tracos<tamanhoLista; tracos++){
         printf("\t%d[%d] (cdp= %d) de %d\n", tracos, listaTracos[tracos]->tamanho, listaTracos[tracos]->cdp, tamanhoLista);
-        //PrintTracoSU(listaTracos[tracos]->tracos[0]);
 
         //Copiar cabecalho do conjunto dos tracos para os tracos de saida
         memcpy(&tracoEmpilhado,listaTracos[tracos]->tracos[0], SEISMIC_UNIX_HEADER);
+        
         //E necessario setar os conteudos de offset e coordenadas de fonte e receptores
         SetCabecalhoCMP(&tracoEmpilhado);
         memcpy(&tracoSemblance,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
         memcpy(&tracoV,&tracoEmpilhado, SEISMIC_UNIX_HEADER);
-
+  
         //Execucao do CMP
         CMP(listaTracos[tracos],Vvector,Cvector,Vint,wind,azimuth,&tracoEmpilhado,&tracoSemblance,&tracoV);
-
+        
         /*float seg = ((float) listaTracos[tracos]->tracos[0]->dt)/1000000;
         int amostras = listaTracos[tracos]->tracos[0]->ns;
         float pilhaTemp;
@@ -177,6 +193,7 @@ int main (int argc, char **argv)
             getchar();
         }
     printf("----------------------------\n");*/
+        
         //Copiar os tracos resultantes nos arquivos de saida
         fwrite(&tracoEmpilhado,SEISMIC_UNIX_HEADER,1,arquivoEmpilhado);
         fwrite(&(tracoEmpilhado.dados[0]),sizeof(float),tracoEmpilhado.ns,arquivoEmpilhado);
@@ -196,12 +213,9 @@ int main (int argc, char **argv)
     fclose(arquivoV);
 
     LiberarMemoria(&listaTracos, &tamanhoLista);
-
     printf("SALVO NOS ARQUIVOS:\n\t%s\n\t%s\n\t%s\n",saidaEmpilhado,saidaSemblance,saidaV);
     return 1;
 }
-
-
 
 void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float wind, float azimuth, Traco* tracoEmpilhado, Traco* tracoSemblance, Traco* tracoV)
 {

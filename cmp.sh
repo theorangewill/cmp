@@ -15,6 +15,8 @@ AZIMUTH=0.0
 make clean
 rm instances/*.out.su
 
+mkdir results
+
 make
 if [ "$1" == "valgrind" ]; then
 	valgrind ./bin/cmp $FILE $V_INI $V_FIN $V_INC $WIND $APH $AZIMUTH /home/william/Programas/referencia/scripts/cmp2.vel.su /home/william/Programas/referencia/scripts/cmp2.coher.su

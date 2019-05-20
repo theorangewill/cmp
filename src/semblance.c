@@ -129,6 +129,8 @@ float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float w
     for(traco=0; traco<lista->tamanho; traco++){
       //Calcular metade do offset do traco
       h = HalfOffset(lista->tracos[traco], azimuth);
+      //printf("AAA %d %.20lf %.20lf\n", traco, t0, h);
+      //getchar();
       //Calcular o tempo de acordo com a funcao da hiperbole
       t = time2D(A,B,C,t0,h,0.0);
       if(t < 0) continue;

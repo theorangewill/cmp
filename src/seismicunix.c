@@ -40,7 +40,6 @@ int LeitorArquivoSU(char *argumento, ListaTracos ***listaTracos, int *tamanhoLis
 
         //Leitura das amostras
         if(fread(traco->dados, sizeof(float), traco->ns, arquivo) < 1) break;
-
         //Verificar o aperture
         OffsetSU(traco,&hx,&hy);
         hx/=2;

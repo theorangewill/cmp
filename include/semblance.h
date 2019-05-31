@@ -27,7 +27,7 @@
 /*
  * Implementação da função semblance
  */
-float Semblance(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha, float azimuth);
+float Semblance(ListaTracos *lista, float A, float B, float C, float t0, int w, int janela, float seg, float *pilha, float azimuth);
 
 
 float SemblanceCMP(ListaTracos *lista, float A, float B, float C, float t0, float wind, float seg, float *pilha, float azimuth);

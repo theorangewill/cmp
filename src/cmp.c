@@ -29,7 +29,7 @@
 #define OMP_H
 #endif
 
-#define NUM_THREADS 4
+#define NUM_THREADS 8
 
 /*
  * Algoritmo CMP.
@@ -53,7 +53,8 @@ int main (int argc, char **argv)
     ListaTracos **listaTracos = NULL;
     int tamanhoLista = 0;
     float wind, aph, azimuth;
-    float Vini, Vfin, Vint, Vinc;
+    float Vini, Vfin, Vinc;
+    int Vint;
     float *Vvector, *Cvector;
     int tracos;
     int i;
@@ -76,7 +77,7 @@ int main (int argc, char **argv)
     //Leitura dos parametros
     Vini = atof(argv[2]);
     Vfin = atof(argv[3]);
-    Vint = atof(argv[4]);
+    Vint = atoi(argv[4]);
     wind = atof(argv[5]);
     aph = atof(argv[6]);
     azimuth = atof(argv[7]);
@@ -86,20 +87,6 @@ int main (int argc, char **argv)
         printf("ERRO NA LEITURA\n");
         exit(1);
     }
-
-    ListaTracos **listaV, **listaSemblance;
-    int tamV, tamSemblance;
-
-    if(!LeitorArquivoSU(argv[8], &listaV, &tamV, aph, azimuth)){
-        printf("ERRO NA LEITURA V\n");
-        exit(1);
-    }
-
-    if(!LeitorArquivoSU(argv[9], &listaSemblance, &tamSemblance, aph, azimuth)){
-        printf("ERRO NA LEITURA Semblance\n");
-        exit(1);
-    }
-
 
     //Criacao dos arquivos de saida
     argv[1][strlen(argv[1])-3] = '\0';
@@ -134,10 +121,17 @@ int main (int argc, char **argv)
     Vinc = (Vfin-Vini)/(Vint);
     Vvector = malloc(sizeof(float)*(Vint));
     Cvector = malloc(sizeof(float)*(Vint));
+#ifdef OMP_H
+#pragma omp parallel for num_threads(2) firstprivate(Vinc,Vini,Vint) shared(Cvector,Vvector)
+#endif
     for(i=0; i<Vint; i++){
       Vvector[i] = Vinc*i+Vini;
       Cvector[i] = 4/Vvector[i]*1/Vvector[i];
     }
+
+#ifdef OMP_H
+omp_set_num_threads(NUM_THREADS);
+#endif
 
     //Rodar o CMP para cada conjunto de tracos de mesmo cdp
     for(tracos=0; tracos<tamanhoLista; tracos++){
@@ -200,7 +194,7 @@ void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float w
     tracoV->dados = malloc(sizeof(float)*amostras);
     //Para cada amostra do primeiro traco
 #ifdef OMP_H
-#pragma omp parallel for firstprivate(lista,amostras,Vint,seg,wind,azimuth,Cvector,Vvector) private(bestV,bestS,i,pilha,pilhaTemp,t0,amostra,s)  shared(tracoEmpilhado,tracoSemblance,tracoV)
+#pragma omp parallel for schedule(static) firstprivate(lista,amostras,Vint,seg,wind,azimuth,Cvector,Vvector) private(bestV,bestS,i,pilha,pilhaTemp,t0,amostra,s)  shared(tracoEmpilhado,tracoSemblance,tracoV)
 #endif
     for(amostra=0; amostra<amostras; amostra++){
         //Calcula o segundo inicial
@@ -219,7 +213,7 @@ void CMP(ListaTracos *lista, float *Vvector, float *Cvector, float Vint, float w
             if(s>1) {printf("S MAIOR Q UM %.20f\n", s); exit(1);}
             else if(s > bestS){
                 bestS = s;
-                bestV = Vvector[i];
+                bestV = Cvector[i];
                 pilha = pilhaTemp;
             }
         }

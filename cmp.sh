@@ -24,5 +24,5 @@ if [ "$1" == "valgrind" ]; then
 elif [ "$1" == "perf" ]; then
 	perf record $CMD
 else   
-	$CMD
+	/usr/bin/time -p $CMD
 fi

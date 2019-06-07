@@ -101,7 +101,6 @@ int main (int argc, char **argv)
         printf("ERRO NA ABERTURA DO ARQUIVO EMPILHADO\n");
 		return 0;
 	}
-
     strcpy(saidaSemblance,saida);
     strcat(saidaSemblance,"-semblance.out.su");
     arquivoSemblance = fopen(saidaSemblance,"w");

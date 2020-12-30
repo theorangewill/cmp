@@ -2,9 +2,7 @@
 
 # suwind key=cdp min=100 max=400 <simple-synthetic.su >simple-synthetic-cut.su 
 
-#FILE=/home/william/Programas/referencia/data/simple-syntetic-micro_sorted.su
 FILE=instances/simple-synthetic.su
-#FILE=instances/simple-windowed.su
 V_INI=2000.00
 V_FIN=6000.00
 V_INC=101
